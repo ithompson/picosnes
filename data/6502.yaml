@@ -1,0 +1,915 @@
+access_modes:
+  ACC:
+    inst_arg: "A"
+    subtypes:
+      RMW:
+        - read_pc: "op(A)"
+  IMM:
+    inst_arg: "#imm"
+    subtypes:
+      Read:
+        - read_pc: "op(rd_val), PC += 1"
+  ABS:
+    inst_arg: "$addr"
+    subtypes:
+      JMP:
+        - read_pc: "dat = rd_val, PC += 1"
+        - read_pc: "PC.hi = rd_val, PC.lo = dat"
+      Read:
+        - read_pc: "tmp.lo = rd_val, PC += 1"
+        - read_pc: "tmp.hi = rd_val, PC += 1"
+        - read_tmp: "op(rd_val)"
+      RMW:
+        - read_pc: "tmp.lo = rd_val, PC += 1"
+        - read_pc: "tmp.hi = rd_val, PC += 1"
+        - read_tmp: "dat = rd_val"
+        - write_tmp: "op(dat)"
+        - write_tmp: ""
+      Write:
+        - read_pc: "tmp.lo = rd_val, PC += 1"
+        - read_pc: "tmp.hi = rd_val, PC += 1, op(dat)"
+        - write_tmp: ""
+  ZP:
+    inst_arg: "$zp"
+    subtypes:
+      Read:
+        - read_pc: "tmp.lo = rd_val, tmp.hi = 0, PC += 1"
+        - read_tmp: "op(rd_val)"
+      RMW:
+        - read_pc: "tmp.lo = rd_val, tmp.hi = 0, PC += 1"
+        - read_tmp: "dat = rd_val"
+        - write_tmp: "op(dat)"
+        - write_tmp: ""
+      Write:
+        - read_pc: "tmp.lo = rd_val, tmp.hi = 0, PC += 1, op(dat)"
+        - write_tmp: ""
+  ZPX:
+    inst_arg: "$zp,X"
+    subtypes:
+      Read:
+        - read_pc: "tmp.lo = rd_val, tmp.hi = 0, PC += 1"
+        - read_tmp: "tmp.lo += X"
+        - read_tmp: "op(rd_val)"
+      RMW:
+        - read_pc: "tmp.lo = rd_val, tmp.hi = 0, PC += 1"
+        - read_tmp: "tmp.lo += X"
+        - read_tmp: "dat = rd_val"
+        - write_tmp: "op(dat)"
+        - write_tmp: ""
+      Write:
+        - read_pc: "tmp.lo = rd_val, tmp.hi = 0, PC += 1"
+        - read_tmp: "tmp.lo += X, op(dat)"
+        - write_tmp: ""
+  ZPY:
+    inst_arg: "$zp,Y"
+    subtypes:
+      Read:
+        - read_pc: "tmp.lo = rd_val, tmp.hi = 0, PC += 1"
+        - read_tmp: "tmp.lo += Y"
+        - read_tmp: "op(rd_val)"
+      Write:
+        - read_pc: "tmp.lo = rd_val, tmp.hi = 0, PC += 1"
+        - read_tmp: "tmp.lo += Y, op(dat)"
+        - write_tmp: ""
+  ABSX:
+    inst_arg: "$addr,X"
+    subtypes:
+      Read:
+        - read_pc: "tmp.lo = rd_val, PC += 1"
+        - read_pc: "tmp.hi = rd_val, tmp.lo += X, PC += 1, skip next if no carry"
+        - read_tmp: "tmp.hi += 1"
+        - read_tmp: "op(rd_val)"
+      RMW:
+        - read_pc: "tmp.lo = rd_val, PC += 1"
+        - read_pc: "tmp.hi = rd_val, tmp.lo += X, PC += 1"
+        - read_tmp: "tmp.hi += carry"
+        - read_tmp: "dat = rd_val"
+        - write_tmp: "op(dat)"
+        - write_tmp: ""
+      Write:
+        - read_pc: "tmp.lo = rd_val, PC += 1"
+        - read_pc: "tmp.hi = rd_val, tmp.lo += X, PC += 1"
+        - read_tmp: "tmp.hi += carry, op(dat)"
+        - write_tmp: ""
+  ABSY:
+    inst_arg: "$addr,Y"
+    subtypes:
+      Read:
+        - read_pc: "tmp.lo = rd_val, PC += 1"
+        - read_pc: "tmp.hi = rd_val, tmp.lo += Y, PC += 1, skip next if no carry"
+        - read_tmp: "tmp.hi += 1"
+        - read_tmp: "op(rd_val)"
+      Write:
+        - read_pc: "tmp.lo = rd_val, PC += 1"
+        - read_pc: "tmp.hi = rd_val, tmp.lo += Y, PC += 1"
+        - read_tmp: "tmp.hi += carry, op(dat)"
+        - write_tmp: ""
+  REL:
+    inst_arg: "label"
+    subtypes:
+      Branch:
+        - read_pc: "dat = rd_val, PC += 1, done if branch not taken"
+        - read_pc: "PC.lo += dat, skip next if no carry"
+        - read_pc: "PC.hi += 1"
+  INDX:
+    inst_arg: "($zp,X)"
+    subtypes:
+      Read:
+        - read_pc: "tmp.lo = rd_val, tmp.hi = 0, PC += 1"
+        - read_tmp: "tmp.lo += X"
+        - read_tmp: "dat = rd_val, tmp.lo += 1"
+        - read_tmp: "tmp.hi = rd_val, tmp.lo = dat"
+        - read_tmp: "op(rd_val)"
+      RMW:
+        - read_pc: "tmp.lo = rd_val, tmp.hi = 0, PC += 1"
+        - read_tmp: "tmp.lo += X"
+        - read_tmp: "dat = rd_val, tmp.lo += 1"
+        - read_tmp: "tmp.hi = rd_val, tmp.lo = dat"
+        - read_tmp: "dat = rd_val"
+        - write_tmp: "op(dat)"
+        - write_tmp: ""
+      Write:
+        - read_pc: "tmp.lo = rd_val, tmp.hi = 0, PC += 1"
+        - read_tmp: "tmp.lo += X"
+        - read_tmp: "dat = rd_val, tmp.lo += 1"
+        - read_tmp: "tmp.hi = rd_val, tmp.lo = dat, op(dat)"
+        - write_tmp: ""
+  INDY:
+    inst_arg: "($zp),Y"
+    subtypes:
+      Read:
+        - read_pc: "tmp.lo = rd_val, tmp.hi = 0, PC += 1"
+        - read_tmp: "dat = rd_val, tmp.lo += 1"
+        - read_tmp: "tmp.hi = rd_val, tmp.lo = dat + Y, skip next if no carry"
+        - read_tmp: "tmp.hi += 1"
+        - read_tmp: "op(rd_val)"
+      RMW:
+        - read_pc: "tmp.lo = rd_val, tmp.hi = 0, PC += 1"
+        - read_tmp: "dat = rd_val, tmp.lo += 1"
+        - read_tmp: "tmp.hi = rd_val, tmp.lo = dat + Y"
+        - read_tmp: "tmp.hi += carry"
+        - read_tmp: "dat = rd_val"
+        - write_tmp: "op(dat)"
+        - write_tmp: ""
+      Write:
+        - read_pc: "tmp.lo = rd_val, tmp.hi = 0, PC += 1"
+        - read_tmp: "dat = rd_val, tmp.lo += 1"
+        - read_tmp: "tmp.hi = rd_val, tmp.lo = dat + Y"
+        - read_tmp: "tmp.hi += carry, op(dat)"
+        - write_tmp: ""
+  ABSIND:
+    inst_arg: "($addr)"
+    subtypes:
+      JMP:
+        - read_pc: "tmp.lo = rd_val, PC += 1"
+        - read_pc: "tmp.hi = rd_val, PC += 1"
+        - read_tmp: "PC.lo = rd_val, tmp.lo += 1"
+        - read_tmp: "PC.hi = rd_val"
+  IMP:
+    inst_arg: ""
+    subtypes:
+      JSR:
+        - read_pc: "tmp.lo = rd_val, PC += 1"
+        - read_stk: "dat = PC.hi"
+        - push_stk: "dat = PC.lo"
+        - push_stk: ""
+        - read_pc: "PC.hi = rd_val, PC.lo = tmp.lo"
+      RTS:
+        - read_pc: ""
+        - read_stk: ""
+        - pop_stk: "PC.lo = rd_val"
+        - pop_stk: "PC.hi = rd_val"
+        - read_pc: "PC += 1"
+      RTI:
+        - read_pc: ""
+        - read_stk: ""
+        - pop_stk: "P = rd_val"
+        - pop_stk: "PC.lo = rd_val"
+        - pop_stk: "PC.hi = rd_val"
+      Push:
+        - read_pc: "op(dat)"
+        - push_stk: ""
+      Pop:
+        - read_pc: ""
+        - read_stk: "S += 1"
+        - read_stk: "op(rd_val)"
+      Nomem:
+        - read_pc: "op()"
+
+mnemonics:
+  ADC:
+    description: "Add with carry"
+    access_subtype: Read
+    op: "A += {reg}"
+    flags: "NZC = ALU"
+  AND:
+    description: "AND (with accumulator)"
+    access_subtype: Read
+    op: "A &= {reg}"
+    flags: "NZ = ALU"
+  ASL:
+    description: "Arithmetic shift left"
+    access_subtype: RMW
+    op: "{reg} <<= 1"
+    flags: "NZC = ALU"
+  BCC:
+    description: "Branch on carry clear"
+    access_subtype: Branch
+    branch_cond: P.C == 0
+  BCS:
+    description: "Branch on carry set"
+    access_subtype: Branch
+    branch_cond: P.C == 1
+  BEQ:
+    description: "Branch on equal (zero set)"
+    access_subtype: Branch
+    branch_cond: P.Z == 1
+  BIT:
+    description: "Bit test"
+    access_subtype: Read
+    op: "A & {reg}"
+    flags: "Z = ALU, N = M7, V = M6"
+  BMI:
+    description: "Branch on minus (negative set)"
+    access_subtype: Branch
+    branch_cond: P.N == 1
+  BNE:
+    description: "Branch on not equal (zero clear)"
+    access_subtype: Branch
+    branch_cond: P.Z == 0
+  BPL:
+    description: "Branch on plus (positive set)"
+    access_subtype: Branch
+    branch_cond: P.N == 0
+  BRK:
+    description: "Break / interrupt"
+    access_subtype: BRK
+  BVC:
+    description: "Branch on overflow clear"
+    access_subtype: Branch
+    branch_cond: P.V == 0
+  BVS:
+    description: "Branch on overflow set"
+    access_subtype: Branch
+    branch_cond: P.V == 1
+  CLC:
+    description: "Clear carry"
+    access_subtype: Nomem
+    op: "P.C = 0"
+  CLD:
+    description: "Clear decimal"
+    access_subtype: Nomem
+    op: "P.D = 0"
+  CLI:
+    description: "Clear interrupt disable"
+    access_subtype: Nomem
+    op: "P.I = 0"
+  CLV:
+    description: "Clear overflow"
+    access_subtype: Nomem
+    op: "P.V = 0"
+  CMP:
+    description: "Compare with accumulator"
+    access_subtype: Read
+    op: "A - {reg}"
+    flags: "NZC = ALU"
+  CPX:
+    description: "Compare with X"
+    access_subtype: Read
+    op: "X - {reg}"
+    flags: "NZC = ALU"
+  CPY:
+    description: "Compare with Y"
+    access_subtype: Read
+    op: "Y - {reg}"
+    flags: "NZC = ALU"
+  DEC:
+    description: "Decrement"
+    access_subtype: RMW
+    op: "{reg} -= 1"
+    flags: "NZ = ALU"
+  DEX:
+    description: "Decrement X"
+    access_subtype: Nomem
+    op: "X -= 1"
+    flags: "NZ = ALU"
+  DEY:
+    description: "Decrement Y"
+    access_subtype: Nomem
+    op: "Y -= 1"
+    flags: "NZ = ALU"
+  EOR:
+    description: "Exclusive OR (with accumulator)"
+    access_subtype: Read
+    op: "A ^= {reg}"
+    flags: "NZ = ALU"
+  INC:
+    description: "Increment"
+    access_subtype: RMW
+    op: "{reg} += 1"
+    flags: "NZ = ALU"
+  INX:
+    description: "Increment X"
+    access_subtype: Nomem
+    op: "X += 1"
+    flags: "NZ = ALU"
+  INY:
+    description: "Increment Y"
+    access_subtype: Nomem
+    op: "Y += 1"
+    flags: "NZ = ALU"
+  JMP:
+    description: "Jump"
+    access_subtype: JMP
+  JSR:
+    description: "Jump to subroutine"
+    access_subtype: JSR
+  LDA:
+    description: "Load accumulator"
+    access_subtype: Read
+    op: "A = {reg}"
+    flags: "NZ = ALU"
+  LDX:
+    description: "Load X"
+    access_subtype: Read
+    op: "X = {reg}"
+    flags: "NZ = ALU"
+  LDY:
+    description: "Load Y"
+    access_subtype: Read
+    op: "Y = {reg}"
+    flags: "NZ = ALU"
+  LSR:
+    description: "Logical shift right"
+    access_subtype: RMW
+    op: "{reg} >>= 1"
+    flags: "N = 0, ZC = ALU"
+  NOP:
+    description: "No operation"
+    access_subtype: Nomem
+    op: ""
+  ORA:
+    description: "Logical OR with accumulator"
+    access_subtype: Read
+    op: "A |= {reg}"
+    flags: "NZ = ALU"
+  PHA:
+    description: "Push accumulator"
+    access_subtype: Push
+    op: "{reg} = A"
+  PHP:
+    description: "Push processor status"
+    access_subtype: Push
+    op: "{reg} = P"
+  PLA:
+    description: "Pull accumulator"
+    access_subtype: Pop
+    op: "A = {reg}"
+    flags: "NZ = ALU"
+  PLP:
+    description: "Pull processor status"
+    access_subtype: Pop
+    op: "{reg} = P"
+  ROL:
+    description: "Rotate left"
+    access_subtype: RMW
+    op: "{reg} ROL= 1"
+    flags: "NZ = ALU, C = {reg}7"
+  ROR:
+    description: "Rotate right"
+    access_subtype: RMW
+    op: "{reg} ROR= 1"
+    flags: "NZ = ALU, C = {reg}0"
+  RTI:
+    description: "Return from interrupt"
+    access_subtype: RTI
+  RTS:
+    description: "Return from subroutine"
+    access_subtype: RTS
+  SBC:
+    description: "Subtract with carry"
+    access_subtype: Read
+    op: "A -= {reg}"
+    flags: "NZCV = ALU"
+  SEC:
+    description: "Set carry"
+    access_subtype: Nomem
+    op: "P.C = 1"
+  SED:
+    description: "Set decimal mode"
+    access_subtype: Nomem
+    op: "P.D = 1"
+  SEI:
+    description: "Set interrupt disable"
+    access_subtype: Nomem
+    op: "P.I = 1"
+  STA:
+    description: "Store accumulator"
+    access_subtype: Write
+    op: "{reg} = A"
+  STX:
+    description: "Store X"
+    access_subtype: Write
+    op: "{reg} = X"
+  STY:
+    description: "Store Y"
+    access_subtype: Write
+    op: "{reg} = Y"
+  TAX:
+    description: "Transfer accumulator to X"
+    access_subtype: Nomem
+    op: "X = A"
+    flags: "NZ = ALU"
+  TAY:
+    description: "Transfer accumulator to Y"
+    access_subtype: Nomem
+    op: "Y = A"
+    flags: "NZ = ALU"
+  TSX:
+    description: "Transfer stack pointer to X"
+    access_subtype: Nomem
+    op: "X = S"
+    flags: "NZ = ALU"
+  TXA:
+    description: "Transfer X to accumulator"
+    access_subtype: Nomem
+    op: "A = X"
+    flags: "NZ = ALU"
+  TXS:
+    description: "Transfer X to stack pointer"
+    access_subtype: Nomem
+    op: "S = X"
+  TYA:
+    description: "Transfer Y to accumulator"
+    access_subtype: Nomem
+    op: "A = Y"
+    flags: "NZ = ALU"
+
+instructions:
+  0x00:
+    mnemonic: BRK
+    access_mode: IMP
+  0x01:
+    mnemonic: ORA
+    access_mode: INDX
+  0x05:
+    mnemonic: ORA
+    access_mode: ZP
+  0x06:
+    mnemonic: ASL
+    access_mode: ZP
+  0x08:
+    mnemonic: PHP
+    access_mode: IMP
+  0x09:
+    mnemonic: ORA
+    access_mode: IMM
+  0x0A:
+    mnemonic: ASL
+    access_mode: ACC
+  0x0D:
+    mnemonic: ORA
+    access_mode: ABS
+  0x0E:
+    mnemonic: ASL
+    access_mode: ABS
+
+  0x10:
+    mnemonic: BPL
+    access_mode: REL
+  0x11:
+    mnemonic: ORA
+    access_mode: INDY
+  0x15:
+    mnemonic: ORA
+    access_mode: ZPX
+  0x16:
+    mnemonic: ASL
+    access_mode: ZPX
+  0x18:
+    mnemonic: CLC
+    access_mode: IMP
+  0x19:
+    mnemonic: ORA
+    access_mode: ABSY
+  0x1D:
+    mnemonic: ORA
+    access_mode: ABSX
+  0x1E:
+    mnemonic: ASL
+    access_mode: ABSX
+
+  0x20:
+    mnemonic: JSR
+    access_mode: ABS
+  0x21:
+    mnemonic: AND
+    access_mode: INDX
+  0x24:
+    mnemonic: BIT
+    access_mode: ZP
+  0x25:
+    mnemonic: AND
+    access_mode: ZP
+  0x26:
+    mnemonic: ROL
+    access_mode: ZP
+  0x28:
+    mnemonic: PLP
+    access_mode: IMP
+  0x29:
+    mnemonic: AND
+    access_mode: IMM
+  0x2A:
+    mnemonic: ROL
+    access_mode: ACC
+  0x2C:
+    mnemonic: BIT
+    access_mode: ABS
+  0x2D:
+    mnemonic: AND
+    access_mode: ABS
+  0x2E:
+    mnemonic: ROL
+    access_mode: ABS
+
+  0x30:
+    mnemonic: BMI
+    access_mode: REL
+  0x31:
+    mnemonic: AND
+    access_mode: INDY
+  0x35:
+    mnemonic: AND
+    access_mode: ZPX
+  0x36:
+    mnemonic: ROL
+    access_mode: ZPX
+  0x38:
+    mnemonic: SEC
+    access_mode: IMP
+  0x39:
+    mnemonic: AND
+    access_mode: ABSY
+  0x3D:
+    mnemonic: AND
+    access_mode: ABSX
+  0x3E:
+    mnemonic: ROL
+    access_mode: ABSX
+
+  0x40:
+    mnemonic: RTI
+    access_mode: IMP
+  0x41:
+    mnemonic: EOR
+    access_mode: INDX
+  0x45:
+    mnemonic: EOR
+    access_mode: ZP
+  0x46:
+    mnemonic: LSR
+    access_mode: ZP
+  0x48:
+    mnemonic: PHA
+    access_mode: IMP
+  0x49:
+    mnemonic: EOR
+    access_mode: IMM
+  0x4A:
+    mnemonic: LSR
+    access_mode: ACC
+  0x4C:
+    mnemonic: JMP
+    access_mode: ABS
+  0x4D:
+    mnemonic: EOR
+    access_mode: ABS
+  0x4E:
+    mnemonic: LSR
+    access_mode: ABS
+
+  0x50:
+    mnemonic: BVC
+    access_mode: REL
+  0x51:
+    mnemonic: EOR
+    access_mode: INDY
+  0x55:
+    mnemonic: EOR
+    access_mode: ZPX
+  0x56:
+    mnemonic: LSR
+    access_mode: ZPX
+  0x58:
+    mnemonic: CLI
+    access_mode: IMP
+  0x59:
+    mnemonic: EOR
+    access_mode: ABSY
+  0x5D:
+    mnemonic: EOR
+    access_mode: ABSX
+  0x5E:
+    mnemonic: LSR
+    access_mode: ABSX
+
+  0x60:
+    mnemonic: RTS
+    access_mode: IMP
+  0x61:
+    mnemonic: ADC
+    access_mode: INDX
+  0x65:
+    mnemonic: ADC
+    access_mode: ZP
+  0x66:
+    mnemonic: ROR
+    access_mode: ZP
+  0x68:
+    mnemonic: PLA
+    access_mode: IMP
+  0x69:
+    mnemonic: ADC
+    access_mode: IMM
+  0x6A:
+    mnemonic: ROR
+    access_mode: ACC
+  0x6C:
+    mnemonic: JMP
+    access_mode: ABSIND
+  0x6D:
+    mnemonic: ADC
+    access_mode: ABS
+  0x6E:
+    mnemonic: ROR
+    access_mode: ABS
+
+  0x70:
+    mnemonic: BVS
+    access_mode: REL
+  0x71:
+    mnemonic: ADC
+    access_mode: INDY
+  0x75:
+    mnemonic: ADC
+    access_mode: ZPX
+  0x76:
+    mnemonic: ROR
+    access_mode: ZPX
+  0x78:
+    mnemonic: SEI
+    access_mode: IMP
+  0x79:
+    mnemonic: ADC
+    access_mode: ABSY
+  0x7D:
+    mnemonic: ADC
+    access_mode: ABSX
+  0x7E:
+    mnemonic: ROR
+    access_mode: ABSX
+
+  0x81:
+    mnemonic: STA
+    access_mode: INDX
+  0x84:
+    mnemonic: STY
+    access_mode: ZP
+  0x85:
+    mnemonic: STA
+    access_mode: ZP
+  0x86:
+    mnemonic: STX
+    access_mode: ZP
+  0x88:
+    mnemonic: DEY
+    access_mode: IMP
+  0x8A:
+    mnemonic: TXA
+    access_mode: IMP
+  0x8C:
+    mnemonic: STY
+    access_mode: ABS
+  0x8D:
+    mnemonic: STA
+    access_mode: ABS
+  0x8E:
+    mnemonic: STX
+    access_mode: ABS
+
+  0x90:
+    mnemonic: BCC
+    access_mode: REL
+  0x91:
+    mnemonic: STA
+    access_mode: INDY
+  0x94:
+    mnemonic: STY
+    access_mode: ZPX
+  0x95:
+    mnemonic: STA
+    access_mode: ZPX
+  0x96:
+    mnemonic: STX
+    access_mode: ZPY
+  0x98:
+    mnemonic: TYA
+    access_mode: IMP
+  0x99:
+    mnemonic: STA
+    access_mode: ABSY
+  0x9A:
+    mnemonic: TXS
+    access_mode: IMP
+  0x9D:
+    mnemonic: STA
+    access_mode: ABSX
+  0xA0:
+    mnemonic: LDY
+    access_mode: IMM
+  0xA1:
+    mnemonic: LDY
+    access_mode: INDX
+  0xA2:
+    mnemonic: LDX
+    access_mode: IMM
+  0xA4:
+    mnemonic: LDY
+    access_mode: ZP
+  0xA5:
+    mnemonic: LDA
+    access_mode: ZP
+  0xA6:
+    mnemonic: LDX
+    access_mode: ZP
+  0xA8:
+    mnemonic: TAY
+    access_mode: IMP
+  0xA9:
+    mnemonic: LDA
+    access_mode: IMM
+  0xAA:
+    mnemonic: TAX
+    access_mode: IMP
+  0xAC:
+    mnemonic: LDY
+    access_mode: ABS
+  0xAD:
+    mnemonic: LDA
+    access_mode: ABS
+  0xAE:
+    mnemonic: LDX
+    access_mode: ABS
+
+  0xB0:
+    mnemonic: BCS
+    access_mode: REL
+  0xB1:
+    mnemonic: LDA
+    access_mode: INDY
+  0xB4:
+    mnemonic: LDY
+    access_mode: ZPX
+  0xB5:
+    mnemonic: LDA
+    access_mode: ZPX
+  0xB6:
+    mnemonic: LDX
+    access_mode: ZPY
+  0xB8:
+    mnemonic: CLV
+    access_mode: IMP
+  0xB9:
+    mnemonic: LDA
+    access_mode: ABSY
+  0xBA:
+    mnemonic: TSX
+    access_mode: IMP
+  0xBC:
+    mnemonic: LDY
+    access_mode: ABSX
+  0xBD:
+    mnemonic: LDA
+    access_mode: ABSX
+  0xBE:
+    mnemonic: LDX
+    access_mode: ABSY
+
+  0xC0:
+    mnemonic: CPY
+    access_mode: IMM
+  0xC1:
+    mnemonic: CMP
+    access_mode: INDX
+  0xC4:
+    mnemonic: CPY
+    access_mode: ZP
+  0xC5:
+    mnemonic: CMP
+    access_mode: ZP
+  0xC6:
+    mnemonic: DEC
+    access_mode: ZP
+  0xC8:
+    mnemonic: INY
+    access_mode: IMP
+  0xC9:
+    mnemonic: CMP
+    access_mode: IMM
+  0xCA:
+    mnemonic: DEX
+    access_mode: IMP
+  0xCC:
+    mnemonic: CPY
+    access_mode: ABS
+  0xCD:
+    mnemonic: CMP
+    access_mode: ABS
+  0xCE:
+    mnemonic: DEC
+    access_mode: ABS
+
+  0xD0:
+    mnemonic: BNE
+    access_mode: REL
+  0xD1:
+    mnemonic: CMP
+    access_mode: INDY
+  0xD5:
+    mnemonic: CMP
+    access_mode: ZPX
+  0xD6:
+    mnemonic: DEC
+    access_mode: ZPX
+  0xD8:
+    mnemonic: CLD
+    access_mode: IMP
+  0xD9:
+    mnemonic: CMP
+    access_mode: ABSY
+  0xDD:
+    mnemonic: CMP
+    access_mode: ABSX
+  0xDE:
+    mnemonic: DEC
+    access_mode: ABSX
+
+  0xE0:
+    mnemonic: CPX
+    access_mode: IMM
+  0xE1:
+    mnemonic: SBC
+    access_mode: INDX
+  0xE4:
+    mnemonic: CPX
+    access_mode: ZP
+  0xE5:
+    mnemonic: SBC
+    access_mode: ZP
+  0xE6:
+    mnemonic: INC
+    access_mode: ZP
+  0xE8:
+    mnemonic: INX
+    access_mode: IMP
+  0xE9:
+    mnemonic: SBC
+    access_mode: IMM
+  0xEA:
+    mnemonic: NOP
+    access_mode: IMP
+  0xEC:
+    mnemonic: CPX
+    access_mode: ABS
+  0xED:
+    mnemonic: SBC
+    access_mode: ABS
+  0xEE:
+    mnemonic: INC
+    access_mode: ABS
+
+  0xF0:
+    mnemonic: BEQ
+    access_mode: REL
+  0xF1:
+    mnemonic: SBC
+    access_mode: INDY
+  0xF5:
+    mnemonic: SBC
+    access_mode: ZPX
+  0xF6:
+    mnemonic: INC
+    access_mode: ZPX
+  0xF8:
+    mnemonic: SED
+    access_mode: IMP
+  0xF9:
+    mnemonic: SBC
+    access_mode: ABSY
+  0xFD:
+    mnemonic: SBC
+    access_mode: ABSX
+  0xFE:
+    mnemonic: INC
+    access_mode: ABSX

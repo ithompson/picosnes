@@ -1,3 +1,6 @@
+dispatch_seq:
+  - read_pc: "dispatch(rd_val), PC += 1"
+
 access_modes:
   ACC:
     inst_arg: "A"

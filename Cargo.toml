@@ -1,0 +1,3 @@
+[workspace]
+resolver = "3"
+members = ["host/nes_emu"]

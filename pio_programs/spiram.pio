@@ -1,0 +1,55 @@
+.program spiram
+.side_set 2
+
+; Expected configuration:
+; SET and OUT pins mapped to D0-D3 of QSPI link
+; Sideset pins mapped to SCK (LSB) and CE (MSB)
+; OSR in shift left mode, autopull enabled at threshold 32
+; ISR in shift left mode, autopush enabled at threshold 8
+;
+; Write byte command:
+; Push two 32-bit words to the TX FIFO:
+;   1. 0x80000000 | addr
+;   2. data << 24
+;
+; Read byte command:
+; Push addr to the TX FIFO
+; Pop byte from RX FIFO
+
+; Common preamble
+top:
+    out x, 8                side 0b10 ; Extract command byte
+    jmp write_seq, x!=0     side 0b10 ; Branch to sequence
+
+read_seq:
+    set pins, 0xE           side 0b00 ; Lower command nibble
+    nop                     side 0b01
+    set pins, 0xB           side 0b00 ; Upper command nibble
+    set y, 6                side 0b01
+read_addr_loop:
+    out pins, 4             side 0b00 ; 24 bits of address, MSB first
+    jmp y--, read_addr_loop side 0b01
+    ; 8 wait cycles before read response starts to arrive
+    set pindirs, 0          side 0b00 ; Switch to input mode
+    set y, 7                side 0b01 ; 7 remaining wait cycles
+wait_loop:
+    nop                     side 0b00
+    jmp y--, wait_loop      side 0b01
+    ; Read one byte of input on falling edges
+    in pins, 4              side 0b00
+    nop                     side 0b01
+    in pins, 4              side 0b00
+    set pindirs, 0xF        side 0b10
+    jmp top                 side 0b10
+
+write_seq:
+    set pins, 0x3           side 0b00 ; Lower command nibble
+    nop                     side 0b01
+    set pins, 0x8           side 0b00 ; Upper command nibble
+    set y, 8                side 0b01
+write_loop: ; 24 bits of data, followed by 8 bits of data. All MSB first
+    out pins, 4             side 0b00
+    jmp y--, write_loop     side 0b01
+    ; Flush remaining 24 bits from OSR and clear CEn
+    out null, 24            side 0b10 ; Flush remaining 24 bits from OSR
+.wrap

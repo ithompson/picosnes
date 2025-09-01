@@ -1,6 +1,14 @@
+mod opcodes;
+mod ops;
+mod sequences;
+
 use std::fmt;
 
-use crate::components::tracer::{TraceComponentId, TraceableReg, TraceableValue, Tracer};
+use sequences::{CpuCycle, MemCycle};
+
+use super::tracer::{TraceComponentId, TraceableReg, TraceableValue, Tracer};
+use opcodes::OPCODE_TABLE;
+use ops::OpFunc;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 struct ArchPSR {
@@ -70,16 +78,32 @@ impl ArchPSR {
         Self { n, z, ..self }
     }
 
+    fn with_nz_from_value(self, value: u8) -> Self {
+        self.with_nz(value & 0x80 != 0, value == 0)
+    }
+
     fn with_nzc(self, n: bool, z: bool, c: bool) -> Self {
         Self { n, z, c, ..self }
+    }
+
+    fn with_nzc_from_value(self, value: u8, c: bool) -> Self {
+        self.with_nzc(value & 0x80 != 0, value == 0, c)
     }
 
     fn with_nzv(self, n: bool, z: bool, v: bool) -> Self {
         Self { n, z, v, ..self }
     }
 
+    fn with_nzv_from_value(self, value: u8, v: bool) -> Self {
+        self.with_nzv(value & 0x80 != 0, value == 0, v)
+    }
+
     fn with_nzcv(self, n: bool, z: bool, c: bool, v: bool) -> Self {
         Self { n, z, c, v, ..self }
+    }
+
+    fn with_nzcv_from_value(self, value: u8, c: bool, v: bool) -> Self {
+        self.with_nzcv(value & 0x80 != 0, value == 0, c, v)
     }
 
     fn with_c(self, c: bool) -> Self {
@@ -137,8 +161,20 @@ impl<'t> ArchRegs<'t> {
     }
 }
 
+#[derive(Debug, Default)]
+struct InternalRegs {
+    tmp_lo: u8,
+    tmp_hi: u8,
+    dat: u8,
+    rd_val: u8,
+}
+
 pub struct Cpu6502<'a> {
     regs: ArchRegs<'a>,
+    internal: InternalRegs,
+    sequence: &'static [CpuCycle],
+    op_func: OpFunc,
+
     tracer: &'a Tracer,
     trace_component: TraceComponentId,
 }
@@ -154,6 +190,9 @@ impl<'a> Cpu6502<'a> {
         let trace_component = tracer.add_component("CPU");
         Cpu6502 {
             regs: ArchRegs::new(tracer, trace_component),
+            internal: Default::default(),
+            op_func: |_, _| {},
+            sequence: &sequences::RESET_SEQUENCE,
             tracer,
             trace_component,
         }
@@ -172,12 +211,50 @@ impl<'a> Cpu6502<'a> {
     }
 
     pub fn reset(&mut self) {
-        // Placeholder implementation
+        self.sequence = &sequences::RESET_SEQUENCE;
     }
 
     pub fn tick(&mut self, data_bus: u8) -> BusAccess {
-        // Placeholder implementation
-        self.regs.pc.set(self.regs.pc.get().wrapping_add(1));
-        BusAccess::Read(self.regs.pc.get())
+        self.internal.rd_val = data_bus;
+
+        if self.sequence.len() == 0 {
+            self.sequence = &sequences::DISPATCH_SEQUENCE;
+        }
+
+        let (action, mem_cycle) = self.sequence.first().unwrap();
+        self.sequence = &self.sequence[1..];
+
+        (action.action_func)(self);
+
+        match mem_cycle {
+            MemCycle::IncReadPC => {
+                self.regs.pc.set(self.regs.pc.get().wrapping_add(1));
+                BusAccess::Read(self.regs.pc.get())
+            }
+            MemCycle::ReadPC => BusAccess::Read(self.regs.pc.get()),
+            MemCycle::IncReadTmp => {
+                self.regs.pc.set(self.regs.pc.get().wrapping_add(1));
+                BusAccess::Read(self.internal.tmp_lo as u16 | ((self.internal.tmp_hi as u16) << 8))
+            }
+            MemCycle::ReadTmp => {
+                BusAccess::Read(self.internal.tmp_lo as u16 | ((self.internal.tmp_hi as u16) << 8))
+            }
+            MemCycle::WriteTmp => BusAccess::Write(
+                self.internal.tmp_lo as u16 | ((self.internal.tmp_hi as u16) << 8),
+                self.internal.dat,
+            ),
+            _ => {
+                todo!("Handle other memory cycles: {:?}", mem_cycle)
+            }
+        }
+    }
+
+    fn dispatch(&mut self, opcode: u8) {
+        if let Some(opdesc) = &OPCODE_TABLE[opcode as usize] {
+            self.sequence = opdesc.sequence;
+            self.op_func = opdesc.op_func;
+        } else {
+            panic!("Invalid opcode: {:02X}", opcode);
+        }
     }
 }

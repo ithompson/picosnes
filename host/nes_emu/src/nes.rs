@@ -1,22 +1,33 @@
 use crate::components::{
-    BusDevice, GenericRouter, ReadResult,
-    cpu_6502::{BusAccess, Cpu6502},
+    BusDevice, GenericRouter, RAMDevice, ReadResult,
+    cpu::{BusAccess, Cpu6502},
     tracer::Tracer,
 };
 
 pub struct NESSystem<'t> {
     cpu: Cpu6502<'t>,
-    cpu_bus: GenericRouter<'t>,
+    cpu_bus: GenericRouter,
     tracer: &'t Tracer,
 }
 
 impl<'t> NESSystem<'t> {
     pub fn new(tracer: &'t Tracer) -> Self {
-        NESSystem {
+        let mut system = NESSystem {
             cpu: Cpu6502::new(tracer),
             cpu_bus: GenericRouter::new(),
             tracer,
-        }
+        };
+        let sysmem = Box::new(RAMDevice::new(0x4000)); // 16KB of system RAM
+        system.cpu_bus.add_device(0x0000, 0x0000, 0x4000, sysmem);
+
+        // Pre-populate a tiny program
+        system.cpu_bus.bus_write(0x200, 0xE6); // INC $zp
+        system.cpu_bus.bus_write(0x201, 0x00); // zp:0x00
+        system.cpu_bus.bus_write(0x202, 0x4C); // JMP $abs
+        system.cpu_bus.bus_write(0x203, 0x00); // abs:lo
+        system.cpu_bus.bus_write(0x204, 0x02); // abs:hi
+
+        system
     }
 
     pub fn run(&mut self) {

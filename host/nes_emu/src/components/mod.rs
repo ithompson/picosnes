@@ -1,7 +1,5 @@
-pub mod cpu_6502;
+pub mod cpu;
 pub mod tracer;
-
-use std::cell::RefCell;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ReadResult {
@@ -32,11 +30,11 @@ impl AddrMapping {
     }
 }
 
-pub struct GenericRouter<'a> {
-    devices: Vec<(AddrMapping, &'a RefCell<dyn BusDevice>)>,
+pub struct GenericRouter {
+    devices: Vec<(AddrMapping, Box<dyn BusDevice>)>,
 }
 
-impl<'a> GenericRouter<'a> {
+impl GenericRouter {
     pub fn new() -> Self {
         GenericRouter {
             devices: Vec::new(),
@@ -48,7 +46,7 @@ impl<'a> GenericRouter<'a> {
         init_start: u16,
         trg_start: u16,
         len: u16,
-        device: &'a RefCell<dyn BusDevice>,
+        device: Box<dyn BusDevice>,
     ) {
         self.devices.push((
             AddrMapping {
@@ -60,15 +58,17 @@ impl<'a> GenericRouter<'a> {
         ));
     }
 
-    fn find_device(&self, addr: u16) -> Option<&(AddrMapping, &'a RefCell<dyn BusDevice>)> {
-        self.devices.iter().find(|(range, _)| range.matches(addr))
+    fn find_device(&mut self, addr: u16) -> Option<&mut (AddrMapping, Box<dyn BusDevice>)> {
+        self.devices
+            .iter_mut()
+            .find(|(range, _)| range.matches(addr))
     }
 }
 
-impl BusDevice for GenericRouter<'_> {
+impl BusDevice for GenericRouter {
     fn bus_read(&mut self, addr: u16) -> ReadResult {
         if let Some((range, device)) = self.find_device(addr) {
-            device.borrow_mut().bus_read(range.translate(addr))
+            device.bus_read(range.translate(addr))
         } else {
             ReadResult::OpenBus
         }
@@ -76,19 +76,17 @@ impl BusDevice for GenericRouter<'_> {
 
     fn bus_write(&mut self, addr: u16, data: u8) {
         self.find_device(addr)
-            .map(|(range, device)| device.borrow_mut().bus_write(range.translate(addr), data));
+            .map(|(range, device)| device.bus_write(range.translate(addr), data));
     }
 }
 
 pub struct RAMDevice {
-    base_addr: u16,
     memory: Vec<u8>,
 }
 
 impl RAMDevice {
-    pub fn new(base_addr: u16, size: usize) -> Self {
+    pub fn new(size: usize) -> Self {
         RAMDevice {
-            base_addr,
             memory: vec![0; size],
         }
     }
@@ -96,41 +94,37 @@ impl RAMDevice {
 
 impl BusDevice for RAMDevice {
     fn bus_read(&mut self, addr: u16) -> ReadResult {
-        let offset = addr.wrapping_sub(self.base_addr) as usize;
-        if offset < self.memory.len() {
-            ReadResult::Data(self.memory[offset])
+        let addr = addr as usize;
+        if addr < self.memory.len() {
+            ReadResult::Data(self.memory[addr])
         } else {
             ReadResult::OpenBus
         }
     }
 
     fn bus_write(&mut self, addr: u16, data: u8) {
-        let offset = addr.wrapping_sub(self.base_addr) as usize;
-        if offset < self.memory.len() {
-            self.memory[offset] = data;
+        let addr = addr as usize;
+        if addr < self.memory.len() {
+            self.memory[addr] = data;
         }
     }
 }
 
 struct ROMDevice {
-    base_addr: u16,
     contents: Vec<u8>,
 }
 
 impl ROMDevice {
-    pub fn new(base_addr: u16, contents: Vec<u8>) -> Self {
-        ROMDevice {
-            base_addr,
-            contents,
-        }
+    pub fn new(contents: Vec<u8>) -> Self {
+        ROMDevice { contents }
     }
 }
 
 impl BusDevice for ROMDevice {
     fn bus_read(&mut self, addr: u16) -> ReadResult {
-        let offset = addr.wrapping_sub(self.base_addr) as usize;
-        if offset < self.contents.len() {
-            ReadResult::Data(self.contents[offset])
+        let addr = addr as usize;
+        if addr < self.contents.len() {
+            ReadResult::Data(self.contents[addr])
         } else {
             ReadResult::OpenBus
         }

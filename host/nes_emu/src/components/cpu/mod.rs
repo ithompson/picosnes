@@ -192,7 +192,7 @@ impl<'a> Cpu6502<'a> {
             regs: ArchRegs::new(tracer, trace_component),
             internal: Default::default(),
             op_func: |_, _| {},
-            sequence: &sequences::RESET_SEQUENCE,
+            sequence: sequences::RESET_SEQUENCE,
             tracer,
             trace_component,
         }
@@ -211,19 +211,21 @@ impl<'a> Cpu6502<'a> {
     }
 
     pub fn reset(&mut self) {
-        self.sequence = &sequences::RESET_SEQUENCE;
+        self.sequence = sequences::RESET_SEQUENCE;
     }
 
     pub fn tick(&mut self, data_bus: u8) -> BusAccess {
         self.internal.rd_val = data_bus;
 
         if self.sequence.len() == 0 {
-            self.sequence = &sequences::DISPATCH_SEQUENCE;
+            self.sequence = sequences::DISPATCH_SEQUENCE;
         }
 
         let (action, mem_cycle) = self.sequence.first().unwrap();
         self.sequence = &self.sequence[1..];
 
+        self.tracer
+            .trace_seq_action(self.trace_component, action.trace_name);
         (action.action_func)(self);
 
         match mem_cycle {
@@ -243,14 +245,32 @@ impl<'a> Cpu6502<'a> {
                 self.internal.tmp_lo as u16 | ((self.internal.tmp_hi as u16) << 8),
                 self.internal.dat,
             ),
-            _ => {
-                todo!("Handle other memory cycles: {:?}", mem_cycle)
+            MemCycle::IncReadStk => {
+                self.regs.pc.set(self.regs.pc.get().wrapping_add(1));
+                BusAccess::Read(0x0100 | (self.regs.s.get() as u16))
+            }
+            MemCycle::ReadStk => BusAccess::Read(0x0100 | (self.regs.s.get() as u16)),
+            MemCycle::PushStk => {
+                let sp = self.regs.s.get();
+                self.regs.s.set(sp.wrapping_sub(1));
+                BusAccess::Write(0x0100 | (sp as u16), self.internal.dat)
+            }
+            MemCycle::PopStk => {
+                let sp = self.regs.s.get().wrapping_add(1);
+                self.regs.s.set(sp);
+                BusAccess::Read(0x0100 | (sp as u16))
             }
         }
     }
 
     fn dispatch(&mut self, opcode: u8) {
         if let Some(opdesc) = &OPCODE_TABLE[opcode as usize] {
+            self.tracer.trace_instr(
+                self.trace_component,
+                self.regs.pc.get(),
+                opdesc.code,
+                opdesc.name,
+            );
             self.sequence = opdesc.sequence;
             self.op_func = opdesc.op_func;
         } else {

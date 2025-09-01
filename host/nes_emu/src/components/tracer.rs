@@ -135,6 +135,23 @@ impl Tracer {
             TraceDisplay(&value)
         );
     }
+    pub fn trace_instr(&self, initiator: TraceComponentId, addr: u16, opcode: u8, text: &str) {
+        if !self.component_enabled_for_trace(initiator) {
+            return;
+        }
+        let component_data = &self.data.borrow().components[initiator.0];
+        println!(
+            "[TRACE][{}][INST] 0x{:04X} 0x{:02X} {}",
+            component_data.name, addr, opcode, text
+        );
+    }
+    pub fn trace_seq_action(&self, initiator: TraceComponentId, action: &str) {
+        if !self.component_enabled_for_trace(initiator) {
+            return;
+        }
+        let component_data = &self.data.borrow().components[initiator.0];
+        println!("[TRACE][{}][SEQ] {}", component_data.name, action);
+    }
 }
 
 #[derive(Debug)]
@@ -161,6 +178,11 @@ impl<'t, T: Copy + Default + TraceableValue> TraceableReg<'t, T> {
     pub fn set(&mut self, value: T) {
         self.value = value;
         self.tracer.trace_reg_write(self.trace_id, value);
+    }
+
+    pub fn update(&mut self, f: impl FnOnce(T) -> T) {
+        let new_value = f(self.value);
+        self.set(new_value);
     }
 }
 

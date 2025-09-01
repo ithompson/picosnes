@@ -18,6 +18,12 @@ access_modes:
       JMP:
         - ["tmp.lo = rd_val", "inc_read_pc"]
         - ["PC.hi = rd_val, PC.lo = tmp.lo", "read_pc"]
+      JSR:
+        - ["tmp.lo = rd_val", "inc_read_stk"]
+        - ["dat = PC.hi", "push_stk"]
+        - ["dat = PC.lo", "push_stk"]
+        - ["", "read_pc"]
+        - ["PC.hi = rd_val, PC.lo = tmp.lo", "read_pc"]
       Read:
         - ["tmp.lo = rd_val", "inc_read_pc"]
         - ["tmp.hi = rd_val", "inc_read_tmp"]
@@ -180,12 +186,7 @@ access_modes:
   IMP:
     inst_arg: ""
     subtypes:
-      JSR:
-        - ["tmp.lo = rd_val", "inc_read_stk"]
-        - ["dat = PC.hi", "push_stk"]
-        - ["dat = PC.lo", "push_stk"]
-        - ["", "read_pc"]
-        - ["PC.hi = rd_val, PC.lo = tmp.lo", "read_pc"]
+      BRK: [] # FIXME
       RTS:
         - ["", "read_stk"]
         - ["", "pop_stk"]

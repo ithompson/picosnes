@@ -1,37 +1,179 @@
 use super::ops;
-use super::sequences as seq;
+use super::sequences::{self, CpuCycle};
 
 #[derive(Debug)]
 pub struct Opcode {
     pub code: u8,
     pub name: &'static str,
+    pub sequence: &'static [CpuCycle],
     pub op_func: ops::OpFunc,
-    pub sequence: &'static [seq::CpuCycle],
+}
+
+macro_rules! opcode {
+    ($table:ident, $code:expr, $name:expr, $sequence:ident, $op_func:ident) => {
+        $table[$code as usize] = Some(Opcode {
+            code: $code,
+            name: $name,
+            sequence: sequences::$sequence,
+            op_func: ops::$op_func,
+        });
+    };
 }
 
 pub static OPCODE_TABLE: [Option<Opcode>; 256] = {
-    let mut a = [const { None }; 256];
+    let mut ops = [const { None }; 256];
 
-    a[0x0A] = Some(Opcode {
-        code: 0x0A,
-        name: "ASL A",
-        op_func: ops::asl,
-        sequence: &seq::ACC_RMW_SEQUENCE,
-    });
+    opcode!(ops, 0x00, "BRK", IMP_BRK_SEQUENCE, nop);
+    opcode!(ops, 0x01, "ORA ($zp,X)", INDX_READ_SEQUENCE, ora);
+    opcode!(ops, 0x05, "ORA $zp", ZP_READ_SEQUENCE, ora);
+    opcode!(ops, 0x06, "ASL $zp", ZP_RMW_SEQUENCE, asl);
+    opcode!(ops, 0x08, "PHP", IMP_PUSH_SEQUENCE, php);
+    opcode!(ops, 0x09, "ORA #imm", IMM_READ_SEQUENCE, ora);
+    opcode!(ops, 0x0A, "ASL A", ACC_RMW_SEQUENCE, asl);
+    opcode!(ops, 0x0D, "ORA $addr", ABS_READ_SEQUENCE, ora);
+    opcode!(ops, 0x0E, "ASL $addr", ABS_RMW_SEQUENCE, asl);
+    opcode!(ops, 0x10, "BPL label", REL_BRANCH_SEQUENCE, nop);
+    opcode!(ops, 0x11, "ORA ($zp),Y", INDY_READ_SEQUENCE, ora);
+    opcode!(ops, 0x15, "ORA $zp,X", ZPX_READ_SEQUENCE, ora);
+    opcode!(ops, 0x16, "ASL $zp,X", ZPX_RMW_SEQUENCE, asl);
+    opcode!(ops, 0x18, "CLC", IMP_NOMEM_SEQUENCE, clc);
+    opcode!(ops, 0x19, "ORA $addr,Y", ABSY_READ_SEQUENCE, ora);
+    opcode!(ops, 0x1D, "ORA $addr,X", ABSX_READ_SEQUENCE, ora);
+    opcode!(ops, 0x1E, "ASL $addr,X", ABSX_RMW_SEQUENCE, asl);
+    opcode!(ops, 0x20, "JSR $addr", ABS_JSR_SEQUENCE, nop);
+    opcode!(ops, 0x21, "AND ($zp,X)", INDX_READ_SEQUENCE, and);
+    opcode!(ops, 0x24, "BIT $zp", ZP_READ_SEQUENCE, bit);
+    opcode!(ops, 0x25, "AND $zp", ZP_READ_SEQUENCE, and);
+    opcode!(ops, 0x26, "ROL $zp", ZP_RMW_SEQUENCE, rol);
+    opcode!(ops, 0x28, "PLP", IMP_POP_SEQUENCE, plp);
+    opcode!(ops, 0x29, "AND #imm", IMM_READ_SEQUENCE, and);
+    opcode!(ops, 0x2A, "ROL A", ACC_RMW_SEQUENCE, rol);
+    opcode!(ops, 0x2C, "BIT $addr", ABS_READ_SEQUENCE, bit);
+    opcode!(ops, 0x2D, "AND $addr", ABS_READ_SEQUENCE, and);
+    opcode!(ops, 0x2E, "ROL $addr", ABS_RMW_SEQUENCE, rol);
+    opcode!(ops, 0x30, "BMI label", REL_BRANCH_SEQUENCE, nop);
+    opcode!(ops, 0x31, "AND ($zp),Y", INDY_READ_SEQUENCE, and);
+    opcode!(ops, 0x35, "AND $zp,X", ZPX_READ_SEQUENCE, and);
+    opcode!(ops, 0x36, "ROL $zp,X", ZPX_RMW_SEQUENCE, rol);
+    opcode!(ops, 0x38, "SEC", IMP_NOMEM_SEQUENCE, sec);
+    opcode!(ops, 0x39, "AND $addr,Y", ABSY_READ_SEQUENCE, and);
+    opcode!(ops, 0x3D, "AND $addr,X", ABSX_READ_SEQUENCE, and);
+    opcode!(ops, 0x3E, "ROL $addr,X", ABSX_RMW_SEQUENCE, rol);
+    opcode!(ops, 0x40, "RTI", IMP_RTI_SEQUENCE, nop);
+    opcode!(ops, 0x41, "EOR ($zp,X)", INDX_READ_SEQUENCE, eor);
+    opcode!(ops, 0x45, "EOR $zp", ZP_READ_SEQUENCE, eor);
+    opcode!(ops, 0x46, "LSR $zp", ZP_RMW_SEQUENCE, lsr);
+    opcode!(ops, 0x48, "PHA", IMP_PUSH_SEQUENCE, pha);
+    opcode!(ops, 0x49, "EOR #imm", IMM_READ_SEQUENCE, eor);
+    opcode!(ops, 0x4A, "LSR A", ACC_RMW_SEQUENCE, lsr);
+    opcode!(ops, 0x4C, "JMP $addr", ABS_JMP_SEQUENCE, nop);
+    opcode!(ops, 0x4D, "EOR $addr", ABS_READ_SEQUENCE, eor);
+    opcode!(ops, 0x4E, "LSR $addr", ABS_RMW_SEQUENCE, lsr);
+    opcode!(ops, 0x50, "BVC label", REL_BRANCH_SEQUENCE, nop);
+    opcode!(ops, 0x51, "EOR ($zp),Y", INDY_READ_SEQUENCE, eor);
+    opcode!(ops, 0x55, "EOR $zp,X", ZPX_READ_SEQUENCE, eor);
+    opcode!(ops, 0x56, "LSR $zp,X", ZPX_RMW_SEQUENCE, lsr);
+    opcode!(ops, 0x58, "CLI", IMP_NOMEM_SEQUENCE, cli);
+    opcode!(ops, 0x59, "EOR $addr,Y", ABSY_READ_SEQUENCE, eor);
+    opcode!(ops, 0x5D, "EOR $addr,X", ABSX_READ_SEQUENCE, eor);
+    opcode!(ops, 0x5E, "LSR $addr,X", ABSX_RMW_SEQUENCE, lsr);
+    opcode!(ops, 0x60, "RTS", IMP_RTS_SEQUENCE, nop);
+    opcode!(ops, 0x61, "ADC ($zp,X)", INDX_READ_SEQUENCE, adc);
+    opcode!(ops, 0x65, "ADC $zp", ZP_READ_SEQUENCE, adc);
+    opcode!(ops, 0x66, "ROR $zp", ZP_RMW_SEQUENCE, ror);
+    opcode!(ops, 0x68, "PLA", IMP_POP_SEQUENCE, pla);
+    opcode!(ops, 0x69, "ADC #imm", IMM_READ_SEQUENCE, adc);
+    opcode!(ops, 0x6A, "ROR A", ACC_RMW_SEQUENCE, ror);
+    opcode!(ops, 0x6C, "JMP ($addr)", ABSIND_JMP_SEQUENCE, nop);
+    opcode!(ops, 0x6D, "ADC $addr", ABS_READ_SEQUENCE, adc);
+    opcode!(ops, 0x6E, "ROR $addr", ABS_RMW_SEQUENCE, ror);
+    opcode!(ops, 0x70, "BVS label", REL_BRANCH_SEQUENCE, nop);
+    opcode!(ops, 0x71, "ADC ($zp),Y", INDY_READ_SEQUENCE, adc);
+    opcode!(ops, 0x75, "ADC $zp,X", ZPX_READ_SEQUENCE, adc);
+    opcode!(ops, 0x76, "ROR $zp,X", ZPX_RMW_SEQUENCE, ror);
+    opcode!(ops, 0x78, "SEI", IMP_NOMEM_SEQUENCE, sei);
+    opcode!(ops, 0x79, "ADC $addr,Y", ABSY_READ_SEQUENCE, adc);
+    opcode!(ops, 0x7D, "ADC $addr,X", ABSX_READ_SEQUENCE, adc);
+    opcode!(ops, 0x7E, "ROR $addr,X", ABSX_RMW_SEQUENCE, ror);
+    opcode!(ops, 0x81, "STA ($zp,X)", INDX_WRITE_SEQUENCE, sta);
+    opcode!(ops, 0x84, "STY $zp", ZP_WRITE_SEQUENCE, sty);
+    opcode!(ops, 0x85, "STA $zp", ZP_WRITE_SEQUENCE, sta);
+    opcode!(ops, 0x86, "STX $zp", ZP_WRITE_SEQUENCE, stx);
+    opcode!(ops, 0x88, "DEY", IMP_NOMEM_SEQUENCE, dey);
+    opcode!(ops, 0x8A, "TXA", IMP_NOMEM_SEQUENCE, txa);
+    opcode!(ops, 0x8C, "STY $addr", ABS_WRITE_SEQUENCE, sty);
+    opcode!(ops, 0x8D, "STA $addr", ABS_WRITE_SEQUENCE, sta);
+    opcode!(ops, 0x8E, "STX $addr", ABS_WRITE_SEQUENCE, stx);
+    opcode!(ops, 0x90, "BCC label", REL_BRANCH_SEQUENCE, nop);
+    opcode!(ops, 0x91, "STA ($zp),Y", INDY_WRITE_SEQUENCE, sta);
+    opcode!(ops, 0x94, "STY $zp,X", ZPX_WRITE_SEQUENCE, sty);
+    opcode!(ops, 0x95, "STA $zp,X", ZPX_WRITE_SEQUENCE, sta);
+    opcode!(ops, 0x96, "STX $zp,Y", ZPY_WRITE_SEQUENCE, stx);
+    opcode!(ops, 0x98, "TYA", IMP_NOMEM_SEQUENCE, tya);
+    opcode!(ops, 0x99, "STA $addr,Y", ABSY_WRITE_SEQUENCE, sta);
+    opcode!(ops, 0x9A, "TXS", IMP_NOMEM_SEQUENCE, txs);
+    opcode!(ops, 0x9D, "STA $addr,X", ABSX_WRITE_SEQUENCE, sta);
+    opcode!(ops, 0xA0, "LDY #imm", IMM_READ_SEQUENCE, ldy);
+    opcode!(ops, 0xA1, "LDY ($zp,X)", INDX_READ_SEQUENCE, ldy);
+    opcode!(ops, 0xA2, "LDX #imm", IMM_READ_SEQUENCE, ldx);
+    opcode!(ops, 0xA4, "LDY $zp", ZP_READ_SEQUENCE, ldy);
+    opcode!(ops, 0xA5, "LDA $zp", ZP_READ_SEQUENCE, lda);
+    opcode!(ops, 0xA6, "LDX $zp", ZP_READ_SEQUENCE, ldx);
+    opcode!(ops, 0xA8, "TAY", IMP_NOMEM_SEQUENCE, tay);
+    opcode!(ops, 0xA9, "LDA #imm", IMM_READ_SEQUENCE, lda);
+    opcode!(ops, 0xAA, "TAX", IMP_NOMEM_SEQUENCE, tax);
+    opcode!(ops, 0xAC, "LDY $addr", ABS_READ_SEQUENCE, ldy);
+    opcode!(ops, 0xAD, "LDA $addr", ABS_READ_SEQUENCE, lda);
+    opcode!(ops, 0xAE, "LDX $addr", ABS_READ_SEQUENCE, ldx);
+    opcode!(ops, 0xB0, "BCS label", REL_BRANCH_SEQUENCE, nop);
+    opcode!(ops, 0xB1, "LDA ($zp),Y", INDY_READ_SEQUENCE, lda);
+    opcode!(ops, 0xB4, "LDY $zp,X", ZPX_READ_SEQUENCE, ldy);
+    opcode!(ops, 0xB5, "LDA $zp,X", ZPX_READ_SEQUENCE, lda);
+    opcode!(ops, 0xB6, "LDX $zp,Y", ZPY_READ_SEQUENCE, ldx);
+    opcode!(ops, 0xB8, "CLV", IMP_NOMEM_SEQUENCE, clv);
+    opcode!(ops, 0xB9, "LDA $addr,Y", ABSY_READ_SEQUENCE, lda);
+    opcode!(ops, 0xBA, "TSX", IMP_NOMEM_SEQUENCE, tsx);
+    opcode!(ops, 0xBC, "LDY $addr,X", ABSX_READ_SEQUENCE, ldy);
+    opcode!(ops, 0xBD, "LDA $addr,X", ABSX_READ_SEQUENCE, lda);
+    opcode!(ops, 0xBE, "LDX $addr,Y", ABSY_READ_SEQUENCE, ldx);
+    opcode!(ops, 0xC0, "CPY #imm", IMM_READ_SEQUENCE, cpy);
+    opcode!(ops, 0xC1, "CMP ($zp,X)", INDX_READ_SEQUENCE, cmp);
+    opcode!(ops, 0xC4, "CPY $zp", ZP_READ_SEQUENCE, cpy);
+    opcode!(ops, 0xC5, "CMP $zp", ZP_READ_SEQUENCE, cmp);
+    opcode!(ops, 0xC6, "DEC $zp", ZP_RMW_SEQUENCE, dec);
+    opcode!(ops, 0xC8, "INY", IMP_NOMEM_SEQUENCE, iny);
+    opcode!(ops, 0xC9, "CMP #imm", IMM_READ_SEQUENCE, cmp);
+    opcode!(ops, 0xCA, "DEX", IMP_NOMEM_SEQUENCE, dex);
+    opcode!(ops, 0xCC, "CPY $addr", ABS_READ_SEQUENCE, cpy);
+    opcode!(ops, 0xCD, "CMP $addr", ABS_READ_SEQUENCE, cmp);
+    opcode!(ops, 0xCE, "DEC $addr", ABS_RMW_SEQUENCE, dec);
+    opcode!(ops, 0xD0, "BNE label", REL_BRANCH_SEQUENCE, nop);
+    opcode!(ops, 0xD1, "CMP ($zp),Y", INDY_READ_SEQUENCE, cmp);
+    opcode!(ops, 0xD5, "CMP $zp,X", ZPX_READ_SEQUENCE, cmp);
+    opcode!(ops, 0xD6, "DEC $zp,X", ZPX_RMW_SEQUENCE, dec);
+    opcode!(ops, 0xD8, "CLD", IMP_NOMEM_SEQUENCE, cld);
+    opcode!(ops, 0xD9, "CMP $addr,Y", ABSY_READ_SEQUENCE, cmp);
+    opcode!(ops, 0xDD, "CMP $addr,X", ABSX_READ_SEQUENCE, cmp);
+    opcode!(ops, 0xDE, "DEC $addr,X", ABSX_RMW_SEQUENCE, dec);
+    opcode!(ops, 0xE0, "CPX #imm", IMM_READ_SEQUENCE, cpx);
+    opcode!(ops, 0xE1, "SBC ($zp,X)", INDX_READ_SEQUENCE, sbc);
+    opcode!(ops, 0xE4, "CPX $zp", ZP_READ_SEQUENCE, cpx);
+    opcode!(ops, 0xE5, "SBC $zp", ZP_READ_SEQUENCE, sbc);
+    opcode!(ops, 0xE6, "INC $zp", ZP_RMW_SEQUENCE, inc);
+    opcode!(ops, 0xE8, "INX", IMP_NOMEM_SEQUENCE, inx);
+    opcode!(ops, 0xE9, "SBC #imm", IMM_READ_SEQUENCE, sbc);
+    opcode!(ops, 0xEA, "NOP", IMP_NOMEM_SEQUENCE, nop);
+    opcode!(ops, 0xEC, "CPX $addr", ABS_READ_SEQUENCE, cpx);
+    opcode!(ops, 0xED, "SBC $addr", ABS_READ_SEQUENCE, sbc);
+    opcode!(ops, 0xEE, "INC $addr", ABS_RMW_SEQUENCE, inc);
+    opcode!(ops, 0xF0, "BEQ label", REL_BRANCH_SEQUENCE, nop);
+    opcode!(ops, 0xF1, "SBC ($zp),Y", INDY_READ_SEQUENCE, sbc);
+    opcode!(ops, 0xF5, "SBC $zp,X", ZPX_READ_SEQUENCE, sbc);
+    opcode!(ops, 0xF6, "INC $zp,X", ZPX_RMW_SEQUENCE, inc);
+    opcode!(ops, 0xF8, "SED", IMP_NOMEM_SEQUENCE, sed);
+    opcode!(ops, 0xF9, "SBC $addr,Y", ABSY_READ_SEQUENCE, sbc);
+    opcode!(ops, 0xFD, "SBC $addr,X", ABSX_READ_SEQUENCE, sbc);
+    opcode!(ops, 0xFE, "INC $addr,X", ABSX_RMW_SEQUENCE, inc);
 
-    a[0x4C] = Some(Opcode {
-        code: 0x4C,
-        name: "JMP $addr",
-        op_func: ops::nop,
-        sequence: &seq::ABS_JMP_SEQUENCE,
-    });
-
-    a[0xE6] = Some(Opcode {
-        code: 0xE6,
-        name: "INC $zp",
-        op_func: ops::inc,
-        sequence: &seq::ZP_RMW_SEQUENCE,
-    });
-
-    a
+    ops
 };

@@ -217,7 +217,7 @@ impl<'a> Cpu6502<'a> {
     pub fn tick(&mut self, data_bus: u8) -> BusAccess {
         self.internal.rd_val = data_bus;
 
-        if self.sequence.len() == 0 {
+        if self.sequence.is_empty() {
             self.sequence = sequences::DISPATCH_SEQUENCE;
         }
 

@@ -75,8 +75,9 @@ impl BusDevice for GenericRouter {
     }
 
     fn bus_write(&mut self, addr: u16, data: u8) {
-        self.find_device(addr)
-            .map(|(range, device)| device.bus_write(range.translate(addr), data));
+        if let Some((range, device)) = self.find_device(addr) {
+            device.bus_write(range.translate(addr), data);
+        }
     }
 }
 

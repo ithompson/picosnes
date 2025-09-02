@@ -1,213 +1,299 @@
+actions:
+  # Special
+  nop: ""
+  dispatch: "dispatch(rd_val)"
+  set_p: "P = rd_val"
+  dec_s: "S -= 1"
+
+  # PC setters
+  set_pc_lo: "PC.lo = rd_val"
+  set_pc_hi: "PC.hi = rd_val"
+  set_pc_full: "PC.hi = rd_val, PC.lo = tmp.lo"
+  set_pc_lo_inc_tmp: "PC.lo = rd_val, tmp.lo += 1"
+
+  # Special ops for branches
+  advance_pc_by_dat_stop_if_no_carry: "PC.lo += dat, done if no carry"
+  inc_pc_hi: "PC.hi += 1"
+
+  # Mnemonic op invocations
+  invoke_op: "op()"
+  invoke_op_a: "op(A)"
+  invoke_op_dat: "op(dat)"
+  invoke_op_rd_val: "op(rd_val)"
+
+  # Basic TMP setters
+  set_tmp_lo: "tmp.lo = rd_val"
+  set_tmp_hi: "tmp.hi = rd_val"
+  set_tmp_full: "tmp.hi = rd_val, tmp.lo = dat"
+  set_tmp_zp: "tmp.lo = rd_val, tmp.hi = 0"
+
+  # Fused tmp set and write cycle
+  set_tmp_hi_invoke_op_dat: "tmp.hi = rd_val, op(dat)"
+  set_tmp_zp_invoke_op_dat: "tmp.lo = rd_val, tmp.hi = 0, op(dat)"
+  set_tmp_full_invoke_op_dat: "tmp.hi = rd_val, tmp.lo = dat, op(dat)"
+
+  # Indirect access mode support
+  set_tmp_hi_inc_by_x_record_carry: "tmp.hi = rd_val, tmp.lo += X, record carry"
+  set_tmp_hi_inc_by_x_skip_if_no_carry: "tmp.hi = rd_val, tmp.lo += X, skip next if no carry"
+  set_tmp_hi_inc_by_y_record_carry: "tmp.hi = rd_val, tmp.lo += Y, record carry"
+  set_tmp_hi_inc_by_y_skip_if_no_carry: "tmp.hi = rd_val, tmp.lo += Y, skip next if no carry"
+  set_tmp_full_inc_by_y_record_carry: "tmp.hi = rd_val, tmp.lo = dat + Y, record carry"
+  set_tmp_full_inc_by_y_skip_if_no_carry: "tmp.hi = rd_val, tmp.lo = dat + Y, skip next if no carry"
+  inc_tmp_hi: "tmp.hi += 1"
+  carry_into_tmp_hi: "tmp.hi += carry"
+  carry_into_tmp_hi_invoke_op_dat: "tmp.hi += carry, op(dat)"
+
+  # ZPX/ZPY access mode support
+  inc_tmp_by_x: "tmp.lo += X"
+  inc_tmp_by_x_invoke_op_dat: "tmp.lo += X, op(dat)"
+  inc_tmp_by_y: "tmp.lo += Y"
+  inc_tmp_by_y_invoke_op_dat: "tmp.lo += Y, op(dat)"
+
+  # DAT setters, for write operations
+  save_pc_hi: "dat = PC.hi"
+  save_pc_lo: "dat = PC.lo"
+  save_rd_val: "dat = rd_val"
+  save_p: "dat = P"
+  save_p_brk: "dat = P+B"
+  save_rd_val_stop_if_no_branch: "dat = rd_val, done if branch not taken"
+  save_rd_val_inc_tmp: "dat = rd_val, tmp.lo += 1"
+
+  # Interrupt/Reset/BRK handling
+  set_reset_vec: "tmp.hi = 0xFF, tmp.lo = 0xFC, P.I = 1"
+  set_irq_vec: "tmp.hi = 0xFF, tmp.lo = 0xFE, P.I = 1"
+  set_nmi_vec: "tmp.hi = 0xFF, tmp.lo = 0xFA, P.I = 1"
+
 dispatch_seq:
-  - ["dispatch(rd_val)", "inc_read_pc"]
+  - [dispatch, inc_read_pc]
+
+reset_seq:
+  - [dec_s, read_stk]
+  - [dec_s, read_stk]
+  - [dec_s, read_stk]
+  - [set_reset_vec, read_tmp]
+  - [set_pc_lo_inc_tmp, read_tmp]
+  - [set_pc_hi, read_pc]
+
+irq_seq:
+  - [save_pc_hi, inc_push_stk]
+  - [save_pc_lo, push_stk]
+  - [save_p, push_stk]
+  - [set_irq_vec, read_tmp]
+  - [set_pc_lo_inc_tmp, read_tmp]
+  - [set_pc_hi, read_pc]
+
+nmi_seq:
+  - [save_pc_hi, inc_push_stk]
+  - [save_pc_lo, push_stk]
+  - [save_p, push_stk]
+  - [set_nmi_vec, read_tmp]
+  - [set_pc_lo_inc_tmp, read_tmp]
+  - [set_pc_hi, read_pc]
 
 access_modes:
-  ACC:
-    inst_arg: "A"
+  ABS:
+    inst_arg: $addr
+    subtypes:
+      JMP:
+        - [set_tmp_lo, inc_read_pc]
+        - [set_pc_full, read_pc]
+      JSR:
+        - [set_tmp_lo, inc_read_stk]
+        - [save_pc_hi, push_stk]
+        - [save_pc_lo, push_stk]
+        - [nop, read_pc]
+        - [set_pc_full, read_pc]
+      RMW:
+        - [set_tmp_lo, inc_read_pc]
+        - [set_tmp_hi, inc_read_tmp]
+        - [save_rd_val, write_tmp]
+        - [invoke_op_dat, write_tmp]
+        - [nop, read_pc]
+      Read:
+        - [set_tmp_lo, inc_read_pc]
+        - [set_tmp_hi, inc_read_tmp]
+        - [invoke_op_rd_val, read_pc]
+      Write:
+        - [set_tmp_lo, inc_read_pc]
+        - [set_tmp_hi_invoke_op_dat, inc_write_tmp]
+        - [nop, read_pc]
+  ABSIND:
+    inst_arg: ($addr)
+    subtypes:
+      JMP:
+        - [set_tmp_lo, inc_read_pc]
+        - [set_tmp_hi, inc_read_tmp]
+        - [set_pc_lo_inc_tmp, read_tmp]
+        - [set_pc_hi, read_pc]
+  ABSX:
+    inst_arg: $addr,X
     subtypes:
       RMW:
-        - ["op(A)", "read_pc"]
+        - [set_tmp_lo, inc_read_pc]
+        - [set_tmp_hi_inc_by_x_record_carry, inc_read_tmp]
+        - [carry_into_tmp_hi, read_tmp]
+        - [save_rd_val, write_tmp]
+        - [invoke_op_dat, write_tmp]
+        - [nop, read_pc]
+      Read:
+        - [set_tmp_lo, inc_read_pc]
+        - [set_tmp_hi_inc_by_x_skip_if_no_carry, inc_read_tmp]
+        - [inc_tmp_hi, read_tmp]
+        - [invoke_op_rd_val, read_pc]
+      Write:
+        - [set_tmp_lo, inc_read_pc]
+        - [set_tmp_hi_inc_by_x_record_carry, inc_read_pc]
+        - [carry_into_tmp_hi_invoke_op_dat, write_tmp]
+        - [nop, read_pc]
+  ABSY:
+    inst_arg: $addr,Y
+    subtypes:
+      Read:
+        - [set_tmp_lo, inc_read_pc]
+        - [set_tmp_hi_inc_by_y_skip_if_no_carry, inc_read_tmp]
+        - [inc_tmp_hi, read_tmp]
+        - [invoke_op_rd_val, read_pc]
+      Write:
+        - [set_tmp_lo, inc_read_pc]
+        - [set_tmp_hi_inc_by_y_record_carry, inc_read_pc]
+        - [carry_into_tmp_hi_invoke_op_dat, write_tmp]
+        - [nop, read_pc]
+  ACC:
+    inst_arg: A
+    subtypes:
+      RMW:
+        - [invoke_op_a, read_pc]
   IMM:
     inst_arg: "#imm"
     subtypes:
       Read:
-        - ["op(rd_val)", "inc_read_pc"]
-  ABS:
-    inst_arg: "$addr"
-    subtypes:
-      JMP:
-        - ["tmp.lo = rd_val", "inc_read_pc"]
-        - ["PC.hi = rd_val, PC.lo = tmp.lo", "read_pc"]
-      JSR:
-        - ["tmp.lo = rd_val", "inc_read_stk"]
-        - ["dat = PC.hi", "push_stk"]
-        - ["dat = PC.lo", "push_stk"]
-        - ["", "read_pc"]
-        - ["PC.hi = rd_val, PC.lo = tmp.lo", "read_pc"]
-      Read:
-        - ["tmp.lo = rd_val", "inc_read_pc"]
-        - ["tmp.hi = rd_val", "inc_read_tmp"]
-        - ["op(rd_val)", "read_pc"]
-      RMW:
-        - ["tmp.lo = rd_val", "inc_read_pc"]
-        - ["tmp.hi = rd_val", "inc_read_tmp"]
-        - ["dat = rd_val", "write_tmp"]
-        - ["op(dat)", "write_tmp"]
-        - ["", "read_pc"]
-      Write:
-        - ["tmp.lo = rd_val", "inc_read_pc"]
-        - ["tmp.hi = rd_val, op(dat)", "inc_write_tmp"]
-        - ["", "read_pc"]
-  ZP:
-    inst_arg: "$zp"
-    subtypes:
-      Read:
-        - ["tmp.lo = rd_val, tmp.hi = 0", "inc_read_tmp"]
-        - ["op(rd_val)", "read_pc"]
-      RMW:
-        - ["tmp.lo = rd_val, tmp.hi = 0", "inc_read_tmp"]
-        - ["dat = rd_val", "write_tmp"]
-        - ["op(dat)", "write_tmp"]
-        - ["", "read_pc"]
-      Write:
-        - ["tmp.lo = rd_val, tmp.hi = 0, op(dat)", "inc_write_tmp"]
-        - ["", "read_pc"]
-  ZPX:
-    inst_arg: "$zp,X"
-    subtypes:
-      Read:
-        - ["tmp.lo = rd_val, tmp.hi = 0", "inc_read_tmp"]
-        - ["tmp.lo += X", "read_tmp"]
-        - ["op(rd_val)", "read_pc"]
-      RMW:
-        - ["tmp.lo = rd_val, tmp.hi = 0", "inc_read_tmp"]
-        - ["tmp.lo += X", "read_tmp"]
-        - ["dat = rd_val", "write_tmp"]
-        - ["op(dat)", "write_tmp"]
-        - ["", "read_pc"]
-      Write:
-        - ["tmp.lo = rd_val, tmp.hi = 0", "inc_read_tmp"]
-        - ["tmp.lo += X, op(dat)", "write_tmp"]
-        - ["", "read_pc"]
-  ZPY:
-    inst_arg: "$zp,Y"
-    subtypes:
-      Read:
-        - ["tmp.lo = rd_val, tmp.hi = 0", "inc_read_tmp"]
-        - ["tmp.lo += Y", "read_tmp"]
-        - ["op(rd_val)", "read_pc"]
-      Write:
-        - ["tmp.lo = rd_val, tmp.hi = 0", "inc_read_tmp"]
-        - ["tmp.lo += Y, op(dat)", "write_tmp"]
-        - ["", "read_pc"]
-  ABSX:
-    inst_arg: "$addr,X"
-    subtypes:
-      Read:
-        - ["tmp.lo = rd_val", "inc_read_pc"]
-        - [
-            "tmp.hi = rd_val, tmp.lo += X, skip next if no carry",
-            "inc_read_tmp",
-          ]
-        - ["tmp.hi += 1", "read_tmp"]
-        - ["op(rd_val)", "read_pc"]
-      RMW:
-        - ["tmp.lo = rd_val", "inc_read_pc"]
-        - ["tmp.hi = rd_val, tmp.lo += X", "inc_read_tmp"]
-        - ["tmp.hi += carry", "read_tmp"]
-        - ["dat = rd_val", "write_tmp"]
-        - ["op(dat)", "write_tmp"]
-        - ["", "read_pc"]
-      Write:
-        - ["tmp.lo = rd_val", "inc_read_pc"]
-        - ["tmp.hi = rd_val, tmp.lo += X", "inc_read_pc"]
-        - ["tmp.hi += carry, op(dat)", "write_tmp"]
-        - ["", "write_tmp"]
-  ABSY:
-    inst_arg: "$addr,Y"
-    subtypes:
-      Read:
-        - ["tmp.lo = rd_val", "inc_read_pc"]
-        - [
-            "tmp.hi = rd_val, tmp.lo += Y, skip next if no carry",
-            "inc_read_tmp",
-          ]
-        - ["tmp.hi += 1", "read_tmp"]
-        - ["op(rd_val)", "read_pc"]
-      Write:
-        - ["tmp.lo = rd_val", "inc_read_pc"]
-        - ["tmp.hi = rd_val, tmp.lo += Y", "inc_read_pc"]
-        - ["tmp.hi += carry, op(dat)", "write_tmp"]
-        - ["", "write_tmp"]
-  REL:
-    inst_arg: "label"
-    subtypes:
-      Branch:
-        - ["dat = rd_val, done if branch not taken", "inc_read_pc"]
-        - ["PC.lo += dat, done if no carry", "read_pc"]
-        - ["PC.hi += 1", "read_pc"]
-  INDX:
-    inst_arg: "($zp,X)"
-    subtypes:
-      Read:
-        - ["tmp.lo = rd_val, tmp.hi = 0", "inc_read_tmp"]
-        - ["tmp.lo += X", "read_tmp"]
-        - ["dat = rd_val, tmp.lo += 1", "read_tmp"]
-        - ["tmp.hi = rd_val, tmp.lo = dat", "read_tmp"]
-        - ["op(rd_val)", "read_pc"]
-      RMW:
-        - ["tmp.lo = rd_val, tmp.hi = 0", "inc_read_tmp"]
-        - ["tmp.lo += X", "read_tmp"]
-        - ["dat = rd_val, tmp.lo += 1", "read_tmp"]
-        - ["tmp.hi = rd_val, tmp.lo = dat", "read_tmp"]
-        - ["dat = rd_val", "write_tmp"]
-        - ["op(dat)", "write_tmp"]
-        - ["", "read_pc"]
-      Write:
-        - ["tmp.lo = rd_val, tmp.hi = 0", "inc_read_tmp"]
-        - ["tmp.lo += X", "read_tmp"]
-        - ["dat = rd_val, tmp.lo += 1", "read_tmp"]
-        - ["tmp.hi = rd_val, tmp.lo = dat, op(dat)", "write_tmp"]
-        - ["", "read_pc"]
-  INDY:
-    inst_arg: "($zp),Y"
-    subtypes:
-      Read:
-        - ["tmp.lo = rd_val, tmp.hi = 0", "inc_read_tmp"]
-        - ["dat = rd_val, tmp.lo += 1", "read_tmp"]
-        - [
-            "tmp.hi = rd_val, tmp.lo = dat + Y, skip next if no carry",
-            "read_tmp",
-          ]
-        - ["tmp.hi += 1", "read_tmp"]
-        - ["op(rd_val)", "read_pc"]
-      RMW:
-        - ["tmp.lo = rd_val, tmp.hi = 0", "inc_read_tmp"]
-        - ["dat = rd_val, tmp.lo += 1", "read_tmp"]
-        - ["tmp.hi = rd_val, tmp.lo = dat + Y", "read_tmp"]
-        - ["tmp.hi += carry", "read_tmp"]
-        - ["dat = rd_val", "write_tmp"]
-        - ["op(dat)", "write_tmp"]
-        - ["", "read_pc"]
-      Write:
-        - ["tmp.lo = rd_val, tmp.hi = 0", "inc_read_tmp"]
-        - ["dat = rd_val, tmp.lo += 1", "read_tmp"]
-        - ["tmp.hi = rd_val, tmp.lo = dat + Y", "read_tmp"]
-        - ["tmp.hi += carry, op(dat)", "write_tmp"]
-        - ["", "read_pc"]
-  ABSIND:
-    inst_arg: "($addr)"
-    subtypes:
-      JMP:
-        - ["tmp.lo = rd_val", "inc_read_pc"]
-        - ["tmp.hi = rd_val", "inc_read_tmp"]
-        - ["PC.lo = rd_val, tmp.lo += 1", "read_tmp"]
-        - ["PC.hi = rd_val", "read_pc"]
+        - [invoke_op_rd_val, inc_read_pc]
   IMP:
     inst_arg: ""
     subtypes:
-      BRK: [] # FIXME
-      RTS:
-        - ["", "read_stk"]
-        - ["", "pop_stk"]
-        - ["PC.lo = rd_val", "pop_stk"]
-        - ["PC.hi = rd_val", "read_pc"]
-        - ["", "inc_read_pc"]
-      RTI:
-        - ["", "read_stk"]
-        - ["", "pop_stk"]
-        - ["P = rd_val", "pop_stk"]
-        - ["PC.lo = rd_val", "pop_stk"]
-        - ["PC.hi = rd_val", "read_pc"]
-      Push:
-        - ["op(dat)", "push_stk"]
-        - ["", "read_pc"]
-      Pop:
-        - ["", "read_stk"]
-        - ["", "pop_stk"]
-        - ["op(rd_val)", "read_pc"]
+      BRK:
+        - [save_pc_hi, inc_push_stk]
+        - [save_pc_lo, push_stk]
+        - [save_p_brk, push_stk]
+        - [set_irq_vec, read_tmp]
+        - [set_pc_lo_inc_tmp, read_tmp]
+        - [set_pc_hi, read_pc]
       Nomem:
-        - ["op()", "read_pc"]
+        - [invoke_op, read_pc]
+      Pop:
+        - [nop, read_stk]
+        - [nop, pop_stk]
+        - [invoke_op_rd_val, read_pc]
+      Push:
+        - [invoke_op_dat, push_stk]
+        - [nop, read_pc]
+      RTI:
+        - [nop, read_stk]
+        - [nop, pop_stk]
+        - [set_p, pop_stk]
+        - [set_pc_lo, pop_stk]
+        - [set_pc_hi, read_pc]
+      RTS:
+        - [nop, read_stk]
+        - [nop, pop_stk]
+        - [set_pc_lo, pop_stk]
+        - [set_pc_hi, read_pc]
+        - [nop, inc_read_pc]
+  INDX:
+    inst_arg: ($zp,X)
+    subtypes:
+      RMW:
+        - [set_tmp_zp, inc_read_tmp]
+        - [inc_tmp_by_x, read_tmp]
+        - [save_rd_val_inc_tmp, read_tmp]
+        - [set_tmp_full, read_tmp]
+        - [save_rd_val, write_tmp]
+        - [invoke_op_dat, write_tmp]
+        - [nop, read_pc]
+      Read:
+        - [set_tmp_zp, inc_read_tmp]
+        - [inc_tmp_by_x, read_tmp]
+        - [save_rd_val_inc_tmp, read_tmp]
+        - [set_tmp_full, read_tmp]
+        - [invoke_op_rd_val, read_pc]
+      Write:
+        - [set_tmp_zp, inc_read_tmp]
+        - [inc_tmp_by_x, read_tmp]
+        - [save_rd_val_inc_tmp, read_tmp]
+        - [set_tmp_full_invoke_op_dat, write_tmp]
+        - [nop, read_pc]
+  INDY:
+    inst_arg: ($zp),Y
+    subtypes:
+      RMW:
+        - [set_tmp_zp, inc_read_tmp]
+        - [save_rd_val_inc_tmp, read_tmp]
+        - [set_tmp_full_inc_by_y_record_carry, read_tmp]
+        - [carry_into_tmp_hi, read_tmp]
+        - [save_rd_val, write_tmp]
+        - [invoke_op_dat, write_tmp]
+        - [nop, read_pc]
+      Read:
+        - [set_tmp_zp, inc_read_tmp]
+        - [save_rd_val_inc_tmp, read_tmp]
+        - [set_tmp_full_inc_by_y_skip_if_no_carry, read_tmp]
+        - [inc_tmp_hi, read_tmp]
+        - [invoke_op_rd_val, read_pc]
+      Write:
+        - [set_tmp_zp, inc_read_tmp]
+        - [save_rd_val_inc_tmp, read_tmp]
+        - [set_tmp_full_inc_by_y_record_carry, read_tmp]
+        - [carry_into_tmp_hi_invoke_op_dat, write_tmp]
+        - [nop, read_pc]
+  REL:
+    inst_arg: label
+    subtypes:
+      Branch:
+        - [save_rd_val_stop_if_no_branch, inc_read_pc]
+        - [advance_pc_by_dat_stop_if_no_carry, read_pc]
+        - [inc_pc_hi, read_pc]
+  ZP:
+    inst_arg: $zp
+    subtypes:
+      RMW:
+        - [set_tmp_zp, inc_read_tmp]
+        - [save_rd_val, write_tmp]
+        - [invoke_op_dat, write_tmp]
+        - [nop, read_pc]
+      Read:
+        - [set_tmp_zp, inc_read_tmp]
+        - [invoke_op_rd_val, read_pc]
+      Write:
+        - [set_tmp_zp_invoke_op_dat, inc_write_tmp]
+        - [nop, read_pc]
+  ZPX:
+    inst_arg: $zp,X
+    subtypes:
+      RMW:
+        - [set_tmp_zp, inc_read_tmp]
+        - [inc_tmp_by_x, read_tmp]
+        - [save_rd_val, write_tmp]
+        - [invoke_op_dat, write_tmp]
+        - [nop, read_pc]
+      Read:
+        - [set_tmp_zp, inc_read_tmp]
+        - [inc_tmp_by_x, read_tmp]
+        - [invoke_op_rd_val, read_pc]
+      Write:
+        - [set_tmp_zp, inc_read_tmp]
+        - [inc_tmp_by_x_invoke_op_dat, write_tmp]
+        - [nop, read_pc]
+  ZPY:
+    inst_arg: $zp,Y
+    subtypes:
+      Read:
+        - [set_tmp_zp, inc_read_tmp]
+        - [inc_tmp_by_y, read_tmp]
+        - [invoke_op_rd_val, read_pc]
+      Write:
+        - [set_tmp_zp, inc_read_tmp]
+        - [inc_tmp_by_y_invoke_op_dat, write_tmp]
+        - [nop, read_pc]
 
 mnemonics:
   ADC:

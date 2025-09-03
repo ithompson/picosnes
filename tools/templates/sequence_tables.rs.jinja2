@@ -1,0 +1,9 @@
+use super::*;
+
+{% for sequence, cycle_list in sequences.items() %}
+seq!({{ sequence|upper }}_SEQUENCE => [
+     {% for (action_name, mem_cycle) in cycle_list %}
+    ({{ action_name|upper }}, {{ mem_cycle|rust_mem_cycle }}),
+     {% endfor %}
+]);
+{% endfor %}

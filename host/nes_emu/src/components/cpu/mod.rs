@@ -230,26 +230,39 @@ impl<'a> Cpu6502<'a> {
 
         match mem_cycle {
             MemCycle::IncReadPC => {
-                self.regs.pc.set(self.regs.pc.get().wrapping_add(1));
+                self.regs.pc.update(|pc| pc.wrapping_add(1));
                 BusAccess::Read(self.regs.pc.get())
             }
             MemCycle::ReadPC => BusAccess::Read(self.regs.pc.get()),
             MemCycle::IncReadTmp => {
-                self.regs.pc.set(self.regs.pc.get().wrapping_add(1));
+                self.regs.pc.update(|pc| pc.wrapping_add(1));
                 BusAccess::Read(self.internal.tmp_lo as u16 | ((self.internal.tmp_hi as u16) << 8))
             }
             MemCycle::ReadTmp => {
                 BusAccess::Read(self.internal.tmp_lo as u16 | ((self.internal.tmp_hi as u16) << 8))
+            }
+            MemCycle::IncWriteTmp => {
+                self.regs.pc.update(|pc| pc.wrapping_add(1));
+                BusAccess::Write(
+                    self.internal.tmp_lo as u16 | ((self.internal.tmp_hi as u16) << 8),
+                    self.internal.dat,
+                )
             }
             MemCycle::WriteTmp => BusAccess::Write(
                 self.internal.tmp_lo as u16 | ((self.internal.tmp_hi as u16) << 8),
                 self.internal.dat,
             ),
             MemCycle::IncReadStk => {
-                self.regs.pc.set(self.regs.pc.get().wrapping_add(1));
+                self.regs.pc.update(|pc| pc.wrapping_add(1));
                 BusAccess::Read(0x0100 | (self.regs.s.get() as u16))
             }
             MemCycle::ReadStk => BusAccess::Read(0x0100 | (self.regs.s.get() as u16)),
+            MemCycle::IncPushStk => {
+                self.regs.pc.update(|pc| pc.wrapping_add(1));
+                let sp = self.regs.s.get();
+                self.regs.s.set(sp.wrapping_sub(1));
+                BusAccess::Write(0x0100 | (sp as u16), self.internal.dat)
+            }
             MemCycle::PushStk => {
                 let sp = self.regs.s.get();
                 self.regs.s.set(sp.wrapping_sub(1));

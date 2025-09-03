@@ -2,132 +2,203 @@ use super::{ArchPSR, Cpu6502};
 
 pub type OpFunc = fn(&mut Cpu6502, &mut u8) -> ();
 
-macro_rules! unimplemented_op {
-    ($name:ident) => {
-        pub fn $name(_cpu: &mut Cpu6502, _val: &mut u8) {
-            unimplemented!("Unimplemented CPU operation: {}", stringify!($name));
-        }
-    };
+pub fn nop(_cpu: &mut Cpu6502, _val: &mut u8) {
+    // No operation
 }
 
-pub fn nop(_cpu: &mut Cpu6502, _val: &mut u8) {}
-
-pub fn inc(cpu: &mut Cpu6502, val: &mut u8) {
-    *val = val.wrapping_add(1);
-    cpu.regs.p.update(|p| p.with_nz_from_value(*val));
+pub fn adc(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: A += {reg}
+    // @flags: NZC = ALU
+    unimplemented!("Mnemonic ADC");
 }
-
-unimplemented_op!(inx);
-unimplemented_op!(iny);
-unimplemented_op!(dec);
-unimplemented_op!(dex);
-unimplemented_op!(dey);
-
-unimplemented_op!(adc);
-unimplemented_op!(sbc);
-unimplemented_op!(and);
-unimplemented_op!(ora);
-unimplemented_op!(eor);
-
+pub fn and(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: A &= {reg}
+    // @flags: NZ = ALU
+    unimplemented!("Mnemonic AND");
+}
 pub fn asl(cpu: &mut Cpu6502, val: &mut u8) {
-    let carry = (*val & 0x80) != 0;
-    *val <<= 1;
-    cpu.regs.p.update(|p| p.with_nzc_from_value(*val, carry));
+    // @pseudocode: {reg} <<= 1
+    // @flags: NZC = ALU
+    unimplemented!("Mnemonic ASL");
 }
-unimplemented_op!(lsr);
-unimplemented_op!(rol);
-unimplemented_op!(ror);
-
-unimplemented_op!(bit);
-unimplemented_op!(cmp);
-unimplemented_op!(cpx);
-unimplemented_op!(cpy);
-
-pub fn pha(cpu: &mut Cpu6502, val: &mut u8) {
-    *val = cpu.regs.a.get();
+pub fn bit(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: A & {reg}
+    // @flags: Z = ALU, N = M7, V = M6
+    unimplemented!("Mnemonic BIT");
 }
-pub fn php(cpu: &mut Cpu6502, val: &mut u8) {
-    *val = cpu.regs.p.get().as_stk_u8(false);
+pub fn clc(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: P.C = 0
+    unimplemented!("Mnemonic CLC");
 }
-pub fn pla(cpu: &mut Cpu6502, val: &mut u8) {
-    cpu.regs.a.set(*val);
-    cpu.regs.p.update(|p| p.with_nz_from_value(*val));
+pub fn cld(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: P.D = 0
+    unimplemented!("Mnemonic CLD");
 }
-pub fn plp(cpu: &mut Cpu6502, val: &mut u8) {
-    cpu.regs.p.set(ArchPSR::from_stk_u8(*val));
+pub fn cli(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: P.I = 0
+    unimplemented!("Mnemonic CLI");
 }
-
-pub fn sec(cpu: &mut Cpu6502, _val: &mut u8) {
-    cpu.regs.p.update(|p| p.with_c(true));
+pub fn clv(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: P.V = 0
+    unimplemented!("Mnemonic CLV");
 }
-pub fn sed(cpu: &mut Cpu6502, _val: &mut u8) {
-    cpu.regs.p.update(|p| p.with_d(true));
+pub fn cmp(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: A - {reg}
+    // @flags: NZC = ALU
+    unimplemented!("Mnemonic CMP");
 }
-pub fn sei(cpu: &mut Cpu6502, _val: &mut u8) {
-    cpu.regs.p.update(|p| p.with_i(true));
+pub fn cpx(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: X - {reg}
+    // @flags: NZC = ALU
+    unimplemented!("Mnemonic CPX");
 }
-pub fn clc(cpu: &mut Cpu6502, _val: &mut u8) {
-    cpu.regs.p.update(|p| p.with_c(false));
+pub fn cpy(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: Y - {reg}
+    // @flags: NZC = ALU
+    unimplemented!("Mnemonic CPY");
 }
-pub fn cld(cpu: &mut Cpu6502, _val: &mut u8) {
-    cpu.regs.p.update(|p| p.with_d(false));
+pub fn dec(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: {reg} -= 1
+    // @flags: NZ = ALU
+    unimplemented!("Mnemonic DEC");
 }
-pub fn cli(cpu: &mut Cpu6502, _val: &mut u8) {
-    cpu.regs.p.update(|p| p.with_i(false));
+pub fn dex(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: X -= 1
+    // @flags: NZ = ALU
+    unimplemented!("Mnemonic DEX");
 }
-pub fn clv(cpu: &mut Cpu6502, _val: &mut u8) {
-    cpu.regs.p.update(|p| p.with_v(false));
+pub fn dey(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: Y -= 1
+    // @flags: NZ = ALU
+    unimplemented!("Mnemonic DEY");
 }
-
+pub fn eor(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: A ^= {reg}
+    // @flags: NZ = ALU
+    unimplemented!("Mnemonic EOR");
+}
+pub fn inc(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: {reg} += 1
+    // @flags: NZ = ALU
+    unimplemented!("Mnemonic INC");
+}
+pub fn inx(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: X += 1
+    // @flags: NZ = ALU
+    unimplemented!("Mnemonic INX");
+}
+pub fn iny(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: Y += 1
+    // @flags: NZ = ALU
+    unimplemented!("Mnemonic INY");
+}
 pub fn lda(cpu: &mut Cpu6502, val: &mut u8) {
-    cpu.regs.a.set(*val);
-    cpu.regs.p.update(|p| p.with_nz_from_value(*val));
+    // @pseudocode: A = {reg}
+    // @flags: NZ = ALU
+    unimplemented!("Mnemonic LDA");
 }
 pub fn ldx(cpu: &mut Cpu6502, val: &mut u8) {
-    cpu.regs.x.set(*val);
-    cpu.regs.p.update(|p| p.with_nz_from_value(*val));
+    // @pseudocode: X = {reg}
+    // @flags: NZ = ALU
+    unimplemented!("Mnemonic LDX");
 }
 pub fn ldy(cpu: &mut Cpu6502, val: &mut u8) {
-    cpu.regs.y.set(*val);
-    cpu.regs.p.update(|p| p.with_nz_from_value(*val));
+    // @pseudocode: Y = {reg}
+    // @flags: NZ = ALU
+    unimplemented!("Mnemonic LDY");
 }
-
+pub fn lsr(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: {reg} >>= 1
+    // @flags: N = 0, ZC = ALU
+    unimplemented!("Mnemonic LSR");
+}
+pub fn ora(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: A |= {reg}
+    // @flags: NZ = ALU
+    unimplemented!("Mnemonic ORA");
+}
+pub fn pha(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: {reg} = A
+    unimplemented!("Mnemonic PHA");
+}
+pub fn php(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: {reg} = P
+    unimplemented!("Mnemonic PHP");
+}
+pub fn pla(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: A = {reg}
+    // @flags: NZ = ALU
+    unimplemented!("Mnemonic PLA");
+}
+pub fn plp(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: {reg} = P
+    unimplemented!("Mnemonic PLP");
+}
+pub fn rol(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: {reg} ROL= 1
+    // @flags: NZ = ALU, C = {reg}7
+    unimplemented!("Mnemonic ROL");
+}
+pub fn ror(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: {reg} ROR= 1
+    // @flags: NZ = ALU, C = {reg}0
+    unimplemented!("Mnemonic ROR");
+}
+pub fn sbc(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: A -= {reg}
+    // @flags: NZCV = ALU
+    unimplemented!("Mnemonic SBC");
+}
+pub fn sec(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: P.C = 1
+    unimplemented!("Mnemonic SEC");
+}
+pub fn sed(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: P.D = 1
+    unimplemented!("Mnemonic SED");
+}
+pub fn sei(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: P.I = 1
+    unimplemented!("Mnemonic SEI");
+}
 pub fn sta(cpu: &mut Cpu6502, val: &mut u8) {
-    *val = cpu.regs.a.get();
+    // @pseudocode: {reg} = A
+    unimplemented!("Mnemonic STA");
 }
 pub fn stx(cpu: &mut Cpu6502, val: &mut u8) {
-    *val = cpu.regs.x.get();
+    // @pseudocode: {reg} = X
+    unimplemented!("Mnemonic STX");
 }
 pub fn sty(cpu: &mut Cpu6502, val: &mut u8) {
-    *val = cpu.regs.y.get();
+    // @pseudocode: {reg} = Y
+    unimplemented!("Mnemonic STY");
 }
-
-pub fn txa(cpu: &mut Cpu6502, _val: &mut u8) {
-    let a = cpu.regs.x.get();
-    cpu.regs.a.set(a);
-    cpu.regs.p.update(|p| p.with_nz_from_value(a));
+pub fn tax(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: X = A
+    // @flags: NZ = ALU
+    unimplemented!("Mnemonic TAX");
 }
-pub fn tya(cpu: &mut Cpu6502, _val: &mut u8) {
-    let a = cpu.regs.y.get();
-    cpu.regs.a.set(a);
-    cpu.regs.p.update(|p| p.with_nz_from_value(a));
+pub fn tay(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: Y = A
+    // @flags: NZ = ALU
+    unimplemented!("Mnemonic TAY");
 }
-pub fn txs(cpu: &mut Cpu6502, _val: &mut u8) {
-    let a = cpu.regs.x.get();
-    cpu.regs.s.set(a);
+pub fn tsx(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: X = S
+    // @flags: NZ = ALU
+    unimplemented!("Mnemonic TSX");
 }
-pub fn tay(cpu: &mut Cpu6502, _val: &mut u8) {
-    let a = cpu.regs.a.get();
-    cpu.regs.y.set(a);
-    cpu.regs.p.update(|p| p.with_nz_from_value(a));
+pub fn txa(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: A = X
+    // @flags: NZ = ALU
+    unimplemented!("Mnemonic TXA");
 }
-pub fn tax(cpu: &mut Cpu6502, _val: &mut u8) {
-    let a = cpu.regs.a.get();
-    cpu.regs.x.set(a);
-    cpu.regs.p.update(|p| p.with_nz_from_value(a));
+pub fn txs(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: S = X
+    unimplemented!("Mnemonic TXS");
 }
-pub fn tsx(cpu: &mut Cpu6502, _val: &mut u8) {
-    let a = cpu.regs.s.get();
-    cpu.regs.x.set(a);
-    cpu.regs.p.update(|p| p.with_nz_from_value(a));
+pub fn tya(cpu: &mut Cpu6502, val: &mut u8) {
+    // @pseudocode: A = Y
+    // @flags: NZ = ALU
+    unimplemented!("Mnemonic TYA");
 }

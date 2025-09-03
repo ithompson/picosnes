@@ -1,0 +1,23 @@
+use super::*;
+
+pub static OPCODE_TABLE: [Option<Opcode>; 256] = {
+    let mut ops = [const { None }; 256];
+
+{% for opcode, instr_data in cpu_data.instructions.items() %}
+    {% set access_mode_data = cpu_data.access_modes[instr_data.access_mode] %}
+    {% set mnemonic_data = cpu_data.mnemonics[instr_data.mnemonic] %}
+    {% if mnemonic_data.op %}
+        {% set op_name = instr_data.mnemonic|lower %}
+    {% else %}
+        {% set op_name = "nop" %}
+    {% endif %}
+    {% if access_mode_data.inst_arg %}
+        {% set instr_name = instr_data.mnemonic ~ " " ~ access_mode_data.inst_arg %}
+    {% else %}
+        {% set instr_name = instr_data.mnemonic %}
+    {% endif %}
+    opcode!(ops, 0x{{ "{:02X}".format(opcode) }}, "{{ instr_name }}", {{ instr_data.access_mode|upper }}_{{ mnemonic_data.access_subtype|upper }}_SEQUENCE, {{ op_name }});
+{% endfor %}
+
+    ops
+};

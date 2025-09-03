@@ -93,7 +93,7 @@ nmi_seq:
 access_modes:
   ABS:
     inst_arg: $addr
-    subtypes:
+    sequences:
       JMP:
         - [set_tmp_lo, inc_read_pc]
         - [set_pc_full, read_pc]
@@ -119,7 +119,7 @@ access_modes:
         - [nop, read_pc]
   ABSIND:
     inst_arg: ($addr)
-    subtypes:
+    sequences:
       JMP:
         - [set_tmp_lo, inc_read_pc]
         - [set_tmp_hi, inc_read_tmp]
@@ -127,7 +127,7 @@ access_modes:
         - [set_pc_hi, read_pc]
   ABSX:
     inst_arg: $addr,X
-    subtypes:
+    sequences:
       RMW:
         - [set_tmp_lo, inc_read_pc]
         - [set_tmp_hi_inc_by_x_record_carry, inc_read_tmp]
@@ -147,7 +147,7 @@ access_modes:
         - [nop, read_pc]
   ABSY:
     inst_arg: $addr,Y
-    subtypes:
+    sequences:
       Read:
         - [set_tmp_lo, inc_read_pc]
         - [set_tmp_hi_inc_by_y_skip_if_no_carry, inc_read_tmp]
@@ -160,17 +160,17 @@ access_modes:
         - [nop, read_pc]
   ACC:
     inst_arg: A
-    subtypes:
+    sequences:
       RMW:
         - [invoke_op_a, read_pc]
   IMM:
     inst_arg: "#imm"
-    subtypes:
+    sequences:
       Read:
         - [invoke_op_rd_val, inc_read_pc]
   IMP:
     inst_arg: ""
-    subtypes:
+    sequences:
       BRK:
         - [save_pc_hi, inc_push_stk]
         - [save_pc_lo, push_stk]
@@ -201,7 +201,7 @@ access_modes:
         - [nop, inc_read_pc]
   INDX:
     inst_arg: ($zp,X)
-    subtypes:
+    sequences:
       RMW:
         - [set_tmp_zp, inc_read_tmp]
         - [inc_tmp_by_x, read_tmp]
@@ -224,7 +224,7 @@ access_modes:
         - [nop, read_pc]
   INDY:
     inst_arg: ($zp),Y
-    subtypes:
+    sequences:
       RMW:
         - [set_tmp_zp, inc_read_tmp]
         - [save_rd_val_inc_tmp, read_tmp]
@@ -247,14 +247,14 @@ access_modes:
         - [nop, read_pc]
   REL:
     inst_arg: label
-    subtypes:
+    sequences:
       Branch:
         - [save_rd_val_stop_if_no_branch, inc_read_pc]
         - [advance_pc_by_dat_stop_if_no_carry, read_pc]
         - [inc_pc_hi, read_pc]
   ZP:
     inst_arg: $zp
-    subtypes:
+    sequences:
       RMW:
         - [set_tmp_zp, inc_read_tmp]
         - [save_rd_val, write_tmp]
@@ -268,7 +268,7 @@ access_modes:
         - [nop, read_pc]
   ZPX:
     inst_arg: $zp,X
-    subtypes:
+    sequences:
       RMW:
         - [set_tmp_zp, inc_read_tmp]
         - [inc_tmp_by_x, read_tmp]
@@ -285,7 +285,7 @@ access_modes:
         - [nop, read_pc]
   ZPY:
     inst_arg: $zp,Y
-    subtypes:
+    sequences:
       Read:
         - [set_tmp_zp, inc_read_tmp]
         - [inc_tmp_by_y, read_tmp]

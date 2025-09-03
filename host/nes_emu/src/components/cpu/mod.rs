@@ -177,6 +177,9 @@ pub struct Cpu6502<'a> {
 
     tracer: &'a Tracer,
     trace_component: TraceComponentId,
+
+    nmi_pending: bool,
+    irq_signaled: bool,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -191,10 +194,13 @@ impl<'a> Cpu6502<'a> {
         Cpu6502 {
             regs: ArchRegs::new(tracer, trace_component),
             internal: Default::default(),
-            op_func: |_, _| {},
+            op_func: ops::nop,
             sequence: sequences::RESET_SEQUENCE,
             tracer,
             trace_component,
+
+            nmi_pending: false,
+            irq_signaled: false,
         }
     }
 
@@ -202,16 +208,17 @@ impl<'a> Cpu6502<'a> {
         self.trace_component
     }
 
-    pub fn set_nmi(&mut self, active: bool) {
-        // Placeholder implementation
+    pub fn trigger_nmi(&mut self) {
+        self.nmi_pending = true;
     }
 
-    pub fn set_irq(&mut self, active: bool) {
-        // Placeholder implementation
+    pub fn set_irq_signaled(&mut self, active: bool) {
+        self.irq_signaled = active;
     }
 
     pub fn reset(&mut self) {
         self.sequence = sequences::RESET_SEQUENCE;
+        self.nmi_pending = false;
     }
 
     pub fn tick(&mut self, data_bus: u8) -> BusAccess {
@@ -277,7 +284,17 @@ impl<'a> Cpu6502<'a> {
     }
 
     fn dispatch(&mut self, opcode: u8) {
-        if let Some(opdesc) = &OPCODE_TABLE[opcode as usize] {
+        // FIXME: Strictly speaking this is the wrong way to do IRQ/NMI handling
+        // A proper implementation would be to force a BRK opcode, and then the
+        // BRK sequence would have the IRQ/NMI checks on the cycle that pushes P
+        // to the stack. If IRQ/NMI is detected, the action on that cycle would
+        // swap to the IRQ/NMI sequence
+        if self.nmi_pending {
+            self.nmi_pending = false;
+            self.sequence = sequences::NMI_SEQUENCE;
+        } else if self.irq_signaled && !self.regs.p.get().i {
+            self.sequence = sequences::IRQ_SEQUENCE;
+        } else if let Some(opdesc) = &OPCODE_TABLE[opcode as usize] {
             self.tracer.trace_instr(
                 self.trace_component,
                 self.regs.pc.get(),

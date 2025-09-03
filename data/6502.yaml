@@ -202,14 +202,14 @@ access_modes:
   INDX:
     inst_arg: ($zp,X)
     sequences:
-      RMW:
-        - [set_tmp_zp, inc_read_tmp]
-        - [inc_tmp_by_x, read_tmp]
-        - [save_rd_val_inc_tmp, read_tmp]
-        - [set_tmp_full, read_tmp]
-        - [save_rd_val, write_tmp]
-        - [invoke_op_dat, write_tmp]
-        - [nop, read_pc]
+      # RMW:
+      #   - [set_tmp_zp, inc_read_tmp]
+      #   - [inc_tmp_by_x, read_tmp]
+      #   - [save_rd_val_inc_tmp, read_tmp]
+      #   - [set_tmp_full, read_tmp]
+      #   - [save_rd_val, write_tmp]
+      #   - [invoke_op_dat, write_tmp]
+      #   - [nop, read_pc]
       Read:
         - [set_tmp_zp, inc_read_tmp]
         - [inc_tmp_by_x, read_tmp]
@@ -225,14 +225,14 @@ access_modes:
   INDY:
     inst_arg: ($zp),Y
     sequences:
-      RMW:
-        - [set_tmp_zp, inc_read_tmp]
-        - [save_rd_val_inc_tmp, read_tmp]
-        - [set_tmp_full_inc_by_y_record_carry, read_tmp]
-        - [carry_into_tmp_hi, read_tmp]
-        - [save_rd_val, write_tmp]
-        - [invoke_op_dat, write_tmp]
-        - [nop, read_pc]
+      # RMW:
+      #   - [set_tmp_zp, inc_read_tmp]
+      #   - [save_rd_val_inc_tmp, read_tmp]
+      #   - [set_tmp_full_inc_by_y_record_carry, read_tmp]
+      #   - [carry_into_tmp_hi, read_tmp]
+      #   - [save_rd_val, write_tmp]
+      #   - [invoke_op_dat, write_tmp]
+      #   - [nop, read_pc]
       Read:
         - [set_tmp_zp, inc_read_tmp]
         - [save_rd_val_inc_tmp, read_tmp]

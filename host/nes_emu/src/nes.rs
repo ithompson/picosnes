@@ -19,6 +19,8 @@ impl<'t> NESSystem<'t> {
         };
         let sysmem = Box::new(RAMDevice::new(0x4000)); // 16KB of system RAM
         system.cpu_bus.add_device(0x0000, 0x0000, 0x4000, sysmem);
+        let bootmem = Box::new(RAMDevice::new(0x10)); // 16 bytes of boot RAM
+        system.cpu_bus.add_device(0xFFF0, 0x0000, 0x0010, bootmem);
 
         // Pre-populate a tiny program
         system.cpu_bus.bus_write(0x200, 0xE6); // INC $zp
@@ -26,6 +28,9 @@ impl<'t> NESSystem<'t> {
         system.cpu_bus.bus_write(0x202, 0x4C); // JMP $abs
         system.cpu_bus.bus_write(0x203, 0x00); // abs:lo
         system.cpu_bus.bus_write(0x204, 0x02); // abs:hi
+        // Reset vector
+        system.cpu_bus.bus_write(0xFFFC, 0x00); // Reset vector lo
+        system.cpu_bus.bus_write(0xFFFD, 0x02); // Reset vector hi
 
         system
     }

@@ -9,7 +9,7 @@ pub fn {{ mnemonic|lower }}(cpu: &mut Cpu6502, val: &mut u8) {
         {% if mnemonic_data.flags %}
     // @flags: {{ mnemonic_data.flags }}
         {% endif %}
-    unimplemented!("Mnemonic {{ mnemonic|upper }}");
+    todo!("Mnemonic {{ mnemonic|upper }}");
 }
     {% endif %}
 {% endfor %}

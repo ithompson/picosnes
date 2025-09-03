@@ -133,15 +133,6 @@ seq!(IMP_RTS_SEQUENCE => [
     (SET_PC_HI, ReadPC),
     (NOP, IncReadPC),
 ]);
-seq!(INDX_RMW_SEQUENCE => [
-    (SET_TMP_ZP, IncReadTmp),
-    (INC_TMP_BY_X, ReadTmp),
-    (SAVE_RD_VAL_INC_TMP, ReadTmp),
-    (SET_TMP_FULL, ReadTmp),
-    (SAVE_RD_VAL, WriteTmp),
-    (INVOKE_OP_DAT, WriteTmp),
-    (NOP, ReadPC),
-]);
 seq!(INDX_READ_SEQUENCE => [
     (SET_TMP_ZP, IncReadTmp),
     (INC_TMP_BY_X, ReadTmp),
@@ -154,15 +145,6 @@ seq!(INDX_WRITE_SEQUENCE => [
     (INC_TMP_BY_X, ReadTmp),
     (SAVE_RD_VAL_INC_TMP, ReadTmp),
     (SET_TMP_FULL_INVOKE_OP_DAT, WriteTmp),
-    (NOP, ReadPC),
-]);
-seq!(INDY_RMW_SEQUENCE => [
-    (SET_TMP_ZP, IncReadTmp),
-    (SAVE_RD_VAL_INC_TMP, ReadTmp),
-    (SET_TMP_FULL_INC_BY_Y_RECORD_CARRY, ReadTmp),
-    (CARRY_INTO_TMP_HI, ReadTmp),
-    (SAVE_RD_VAL, WriteTmp),
-    (INVOKE_OP_DAT, WriteTmp),
     (NOP, ReadPC),
 ]);
 seq!(INDY_READ_SEQUENCE => [

@@ -2,7 +2,7 @@ action_defs! {
 {% for action_name, pseudocode in cpu_data.actions.items() %}
     {{ action_name|upper }} => |cpu| {
         // @pseudocode: {{ pseudocode }}
-        unimplemented!("Action {{ action_name|upper }}");
+        todo!("Action {{ action_name|upper }}");
     },
 {% endfor %}
 }

@@ -9,196 +9,197 @@ pub fn nop(_cpu: &mut Cpu6502, _val: &mut u8) {
 pub fn adc(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: A += {reg}
     // @flags: NZC = ALU
-    unimplemented!("Mnemonic ADC");
+    todo!("Mnemonic ADC");
 }
 pub fn and(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: A &= {reg}
     // @flags: NZ = ALU
-    unimplemented!("Mnemonic AND");
+    todo!("Mnemonic AND");
 }
 pub fn asl(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: {reg} <<= 1
     // @flags: NZC = ALU
-    unimplemented!("Mnemonic ASL");
+    todo!("Mnemonic ASL");
 }
 pub fn bit(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: A & {reg}
     // @flags: Z = ALU, N = M7, V = M6
-    unimplemented!("Mnemonic BIT");
+    todo!("Mnemonic BIT");
 }
 pub fn clc(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: P.C = 0
-    unimplemented!("Mnemonic CLC");
+    todo!("Mnemonic CLC");
 }
 pub fn cld(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: P.D = 0
-    unimplemented!("Mnemonic CLD");
+    todo!("Mnemonic CLD");
 }
 pub fn cli(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: P.I = 0
-    unimplemented!("Mnemonic CLI");
+    todo!("Mnemonic CLI");
 }
 pub fn clv(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: P.V = 0
-    unimplemented!("Mnemonic CLV");
+    todo!("Mnemonic CLV");
 }
 pub fn cmp(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: A - {reg}
     // @flags: NZC = ALU
-    unimplemented!("Mnemonic CMP");
+    todo!("Mnemonic CMP");
 }
 pub fn cpx(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: X - {reg}
     // @flags: NZC = ALU
-    unimplemented!("Mnemonic CPX");
+    todo!("Mnemonic CPX");
 }
 pub fn cpy(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: Y - {reg}
     // @flags: NZC = ALU
-    unimplemented!("Mnemonic CPY");
+    todo!("Mnemonic CPY");
 }
 pub fn dec(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: {reg} -= 1
     // @flags: NZ = ALU
-    unimplemented!("Mnemonic DEC");
+    todo!("Mnemonic DEC");
 }
 pub fn dex(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: X -= 1
     // @flags: NZ = ALU
-    unimplemented!("Mnemonic DEX");
+    todo!("Mnemonic DEX");
 }
 pub fn dey(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: Y -= 1
     // @flags: NZ = ALU
-    unimplemented!("Mnemonic DEY");
+    todo!("Mnemonic DEY");
 }
 pub fn eor(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: A ^= {reg}
     // @flags: NZ = ALU
-    unimplemented!("Mnemonic EOR");
+    todo!("Mnemonic EOR");
 }
 pub fn inc(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: {reg} += 1
     // @flags: NZ = ALU
-    unimplemented!("Mnemonic INC");
+    *val = val.wrapping_add(1);
+    cpu.regs.p.update(|p| p.with_nz_from_value(*val));
 }
 pub fn inx(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: X += 1
     // @flags: NZ = ALU
-    unimplemented!("Mnemonic INX");
+    todo!("Mnemonic INX");
 }
 pub fn iny(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: Y += 1
     // @flags: NZ = ALU
-    unimplemented!("Mnemonic INY");
+    todo!("Mnemonic INY");
 }
 pub fn lda(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: A = {reg}
     // @flags: NZ = ALU
-    unimplemented!("Mnemonic LDA");
+    todo!("Mnemonic LDA");
 }
 pub fn ldx(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: X = {reg}
     // @flags: NZ = ALU
-    unimplemented!("Mnemonic LDX");
+    todo!("Mnemonic LDX");
 }
 pub fn ldy(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: Y = {reg}
     // @flags: NZ = ALU
-    unimplemented!("Mnemonic LDY");
+    todo!("Mnemonic LDY");
 }
 pub fn lsr(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: {reg} >>= 1
     // @flags: N = 0, ZC = ALU
-    unimplemented!("Mnemonic LSR");
+    todo!("Mnemonic LSR");
 }
 pub fn ora(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: A |= {reg}
     // @flags: NZ = ALU
-    unimplemented!("Mnemonic ORA");
+    todo!("Mnemonic ORA");
 }
 pub fn pha(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: {reg} = A
-    unimplemented!("Mnemonic PHA");
+    todo!("Mnemonic PHA");
 }
 pub fn php(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: {reg} = P
-    unimplemented!("Mnemonic PHP");
+    todo!("Mnemonic PHP");
 }
 pub fn pla(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: A = {reg}
     // @flags: NZ = ALU
-    unimplemented!("Mnemonic PLA");
+    todo!("Mnemonic PLA");
 }
 pub fn plp(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: {reg} = P
-    unimplemented!("Mnemonic PLP");
+    todo!("Mnemonic PLP");
 }
 pub fn rol(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: {reg} ROL= 1
     // @flags: NZ = ALU, C = {reg}7
-    unimplemented!("Mnemonic ROL");
+    todo!("Mnemonic ROL");
 }
 pub fn ror(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: {reg} ROR= 1
     // @flags: NZ = ALU, C = {reg}0
-    unimplemented!("Mnemonic ROR");
+    todo!("Mnemonic ROR");
 }
 pub fn sbc(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: A -= {reg}
     // @flags: NZCV = ALU
-    unimplemented!("Mnemonic SBC");
+    todo!("Mnemonic SBC");
 }
 pub fn sec(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: P.C = 1
-    unimplemented!("Mnemonic SEC");
+    todo!("Mnemonic SEC");
 }
 pub fn sed(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: P.D = 1
-    unimplemented!("Mnemonic SED");
+    todo!("Mnemonic SED");
 }
 pub fn sei(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: P.I = 1
-    unimplemented!("Mnemonic SEI");
+    todo!("Mnemonic SEI");
 }
 pub fn sta(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: {reg} = A
-    unimplemented!("Mnemonic STA");
+    todo!("Mnemonic STA");
 }
 pub fn stx(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: {reg} = X
-    unimplemented!("Mnemonic STX");
+    todo!("Mnemonic STX");
 }
 pub fn sty(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: {reg} = Y
-    unimplemented!("Mnemonic STY");
+    todo!("Mnemonic STY");
 }
 pub fn tax(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: X = A
     // @flags: NZ = ALU
-    unimplemented!("Mnemonic TAX");
+    todo!("Mnemonic TAX");
 }
 pub fn tay(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: Y = A
     // @flags: NZ = ALU
-    unimplemented!("Mnemonic TAY");
+    todo!("Mnemonic TAY");
 }
 pub fn tsx(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: X = S
     // @flags: NZ = ALU
-    unimplemented!("Mnemonic TSX");
+    todo!("Mnemonic TSX");
 }
 pub fn txa(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: A = X
     // @flags: NZ = ALU
-    unimplemented!("Mnemonic TXA");
+    todo!("Mnemonic TXA");
 }
 pub fn txs(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: S = X
-    unimplemented!("Mnemonic TXS");
+    todo!("Mnemonic TXS");
 }
 pub fn tya(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: A = Y
     // @flags: NZ = ALU
-    unimplemented!("Mnemonic TYA");
+    todo!("Mnemonic TYA");
 }

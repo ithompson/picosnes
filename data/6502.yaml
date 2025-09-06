@@ -12,8 +12,8 @@ actions:
   set_pc_lo_inc_tmp: "PC.lo = rd_val, tmp.lo += 1"
 
   # Special ops for branches
-  advance_pc_by_dat_stop_if_no_carry: "PC.lo += dat, done if no carry"
-  inc_pc_hi: "PC.hi += 1"
+  advance_pc_by_dat_stop_if_no_carry: "PC.lo signed+= dat, dat = carry, done if no carry"
+  carry_into_pc_hi: "PC.hi += dat"
 
   # Mnemonic op invocations
   invoke_op: "op()"
@@ -33,15 +33,15 @@ actions:
   set_tmp_full_invoke_op_dat: "tmp.hi = rd_val, tmp.lo = dat, op(dat)"
 
   # Indirect access mode support
-  set_tmp_hi_inc_by_x_record_carry: "tmp.hi = rd_val, tmp.lo += X, record carry"
+  set_tmp_hi_inc_by_x_record_carry: "tmp.hi = rd_val, tmp.lo += X, dat = carry"
   set_tmp_hi_inc_by_x_skip_if_no_carry: "tmp.hi = rd_val, tmp.lo += X, skip next if no carry"
-  set_tmp_hi_inc_by_y_record_carry: "tmp.hi = rd_val, tmp.lo += Y, record carry"
+  set_tmp_hi_inc_by_y_record_carry: "tmp.hi = rd_val, tmp.lo += Y, dat = carry"
   set_tmp_hi_inc_by_y_skip_if_no_carry: "tmp.hi = rd_val, tmp.lo += Y, skip next if no carry"
-  set_tmp_full_inc_by_y_record_carry: "tmp.hi = rd_val, tmp.lo = dat + Y, record carry"
+  set_tmp_full_inc_by_y_record_carry: "tmp.hi = rd_val, tmp.lo = dat + Y, dat = carry"
   set_tmp_full_inc_by_y_skip_if_no_carry: "tmp.hi = rd_val, tmp.lo = dat + Y, skip next if no carry"
   inc_tmp_hi: "tmp.hi += 1"
-  carry_into_tmp_hi: "tmp.hi += carry"
-  carry_into_tmp_hi_invoke_op_dat: "tmp.hi += carry, op(dat)"
+  carry_into_tmp_hi: "tmp.hi += dat"
+  carry_into_tmp_hi_invoke_op_dat: "tmp.hi += dat, op(dat)"
 
   # ZPX/ZPY access mode support
   inc_tmp_by_x: "tmp.lo += X"
@@ -251,7 +251,7 @@ access_modes:
       Branch:
         - [save_rd_val_stop_if_no_branch, inc_read_pc]
         - [advance_pc_by_dat_stop_if_no_carry, read_pc]
-        - [inc_pc_hi, read_pc]
+        - [carry_into_pc_hi, read_pc]
   ZP:
     inst_arg: $zp
     sequences:

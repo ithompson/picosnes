@@ -307,4 +307,12 @@ impl<'a> Cpu6502<'a> {
             panic!("Invalid opcode: {:02X}", opcode);
         }
     }
+
+    fn skip_next_cycle(&mut self) {
+        self.sequence = &self.sequence[1..];
+    }
+
+    fn end_instruction(&mut self) {
+        self.sequence = &[];
+    }
 }

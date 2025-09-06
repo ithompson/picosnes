@@ -164,7 +164,7 @@ seq!(INDY_WRITE_SEQUENCE => [
 seq!(REL_BRANCH_SEQUENCE => [
     (SAVE_RD_VAL_STOP_IF_NO_BRANCH, IncReadPC),
     (ADVANCE_PC_BY_DAT_STOP_IF_NO_CARRY, ReadPC),
-    (INC_PC_HI, ReadPC),
+    (CARRY_INTO_PC_HI, ReadPC),
 ]);
 seq!(ZP_RMW_SEQUENCE => [
     (SET_TMP_ZP, IncReadTmp),

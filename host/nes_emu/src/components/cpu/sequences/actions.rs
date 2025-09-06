@@ -1,3 +1,4 @@
+use super::super::ArchPSR;
 use super::*;
 
 action_defs! {
@@ -10,7 +11,7 @@ action_defs! {
     },
     SET_P => |cpu| {
         // @pseudocode: P = rd_val
-        todo!("Action SET_P");
+        cpu.regs.p.set(ArchPSR::from_stk_u8(cpu.internal.rd_val));
     },
     DEC_S => |cpu| {
         // @pseudocode: S -= 1
@@ -18,7 +19,7 @@ action_defs! {
     },
     SET_PC_LO => |cpu| {
         // @pseudocode: PC.lo = rd_val
-        todo!("Action SET_PC_LO");
+        cpu.regs.pc.update(|pc| (pc & 0xFF00) | (cpu.internal.rd_val as u16));
     },
     SET_PC_HI => |cpu| {
         // @pseudocode: PC.hi = rd_val
@@ -34,12 +35,25 @@ action_defs! {
         cpu.internal.tmp_lo = cpu.internal.tmp_lo.wrapping_add(1);
     },
     ADVANCE_PC_BY_DAT_STOP_IF_NO_CARRY => |cpu| {
-        // @pseudocode: PC.lo += dat, done if no carry
-        todo!("Action ADVANCE_PC_BY_DAT_STOP_IF_NO_CARRY");
+        // @pseudocode: PC.lo signed+= dat, dat = carry, done if no carry
+        let current_pc_lo = (cpu.regs.pc.get() & 0x00FF) as u8;
+        let (pc_lo, carry) = current_pc_lo.overflowing_add_signed(cpu.internal.dat as i8);
+        cpu.regs.pc.update(|pc| (pc & 0xFF00) | (pc_lo as u16));
+        if carry {
+            cpu.internal.dat = if cpu.internal.dat < 0x80 {
+                1
+            } else {
+                0xFF
+            };
+        } else {
+            cpu.end_instruction();
+        }
     },
-    INC_PC_HI => |cpu| {
-        // @pseudocode: PC.hi += 1
-        todo!("Action INC_PC_HI");
+    CARRY_INTO_PC_HI => |cpu| {
+        // @pseudocode: PC.hi += dat
+        let mut pc_hi = ((cpu.regs.pc.get() & 0xFF00) >> 8) as u8;
+        pc_hi = pc_hi.wrapping_add(cpu.internal.dat);
+        cpu.regs.pc.update(|pc| (pc & 0x00FF) | ((pc_hi as u16) << 8));
     },
     INVOKE_OP => |cpu| {
         // @pseudocode: op()
@@ -48,7 +62,9 @@ action_defs! {
     },
     INVOKE_OP_A => |cpu| {
         // @pseudocode: op(A)
-        todo!("Action INVOKE_OP_A");
+        let mut val = cpu.regs.a.get();
+        (cpu.op_func)(cpu, &mut val);
+        cpu.regs.a.set(val);
     },
     INVOKE_OP_DAT => |cpu| {
         // @pseudocode: op(dat)
@@ -67,11 +83,12 @@ action_defs! {
     },
     SET_TMP_HI => |cpu| {
         // @pseudocode: tmp.hi = rd_val
-        todo!("Action SET_TMP_HI");
+        cpu.internal.tmp_hi = cpu.internal.rd_val;
     },
     SET_TMP_FULL => |cpu| {
         // @pseudocode: tmp.hi = rd_val, tmp.lo = dat
-        todo!("Action SET_TMP_FULL");
+        cpu.internal.tmp_hi = cpu.internal.rd_val;
+        cpu.internal.tmp_lo = cpu.internal.dat;
     },
     SET_TMP_ZP => |cpu| {
         // @pseudocode: tmp.lo = rd_val, tmp.hi = 0
@@ -102,56 +119,89 @@ action_defs! {
         cpu.internal.dat = val;
     },
     SET_TMP_HI_INC_BY_X_RECORD_CARRY => |cpu| {
-        // @pseudocode: tmp.hi = rd_val, tmp.lo += X, record carry
-        todo!("Action SET_TMP_HI_INC_BY_X_RECORD_CARRY");
+        // @pseudocode: tmp.hi = rd_val, tmp.lo += X, dat = carry
+        cpu.internal.tmp_hi = cpu.internal.rd_val;
+        let (incr, carry) = cpu.internal.tmp_lo.overflowing_add(cpu.regs.x.get());
+        cpu.internal.tmp_lo = incr;
+        cpu.internal.dat = if carry { 1 } else { 0 };
     },
     SET_TMP_HI_INC_BY_X_SKIP_IF_NO_CARRY => |cpu| {
         // @pseudocode: tmp.hi = rd_val, tmp.lo += X, skip next if no carry
-        todo!("Action SET_TMP_HI_INC_BY_X_SKIP_IF_NO_CARRY");
+        cpu.internal.tmp_hi = cpu.internal.rd_val;
+        let (incr, carry) = cpu.internal.tmp_lo.overflowing_add(cpu.regs.x.get());
+        cpu.internal.tmp_lo = incr;
+        if !carry {
+            cpu.skip_next_cycle();
+        }
     },
     SET_TMP_HI_INC_BY_Y_RECORD_CARRY => |cpu| {
-        // @pseudocode: tmp.hi = rd_val, tmp.lo += Y, record carry
-        todo!("Action SET_TMP_HI_INC_BY_Y_RECORD_CARRY");
+        // @pseudocode: tmp.hi = rd_val, tmp.lo += Y, dat = carry
+        cpu.internal.tmp_hi = cpu.internal.rd_val;
+        let (incr, carry) = cpu.internal.tmp_lo.overflowing_add(cpu.regs.y.get());
+        cpu.internal.tmp_lo = incr;
+        cpu.internal.dat = if carry { 1 } else { 0 };
     },
     SET_TMP_HI_INC_BY_Y_SKIP_IF_NO_CARRY => |cpu| {
         // @pseudocode: tmp.hi = rd_val, tmp.lo += Y, skip next if no carry
-        todo!("Action SET_TMP_HI_INC_BY_Y_SKIP_IF_NO_CARRY");
+        cpu.internal.tmp_hi = cpu.internal.rd_val;
+        let (incr, carry) = cpu.internal.tmp_lo.overflowing_add(cpu.regs.y.get());
+        cpu.internal.tmp_lo = incr;
+        if !carry {
+            cpu.skip_next_cycle();
+        }
     },
     SET_TMP_FULL_INC_BY_Y_RECORD_CARRY => |cpu| {
-        // @pseudocode: tmp.hi = rd_val, tmp.lo = dat + Y, record carry
-        todo!("Action SET_TMP_FULL_INC_BY_Y_RECORD_CARRY");
+        // @pseudocode: tmp.hi = rd_val, tmp.lo = dat + Y, dat = carry
+        cpu.internal.tmp_hi = cpu.internal.rd_val;
+        let (incr, carry) = cpu.internal.dat.overflowing_add(cpu.regs.y.get());
+        cpu.internal.tmp_lo = incr;
+        cpu.internal.dat = if carry { 1 } else { 0 };
     },
     SET_TMP_FULL_INC_BY_Y_SKIP_IF_NO_CARRY => |cpu| {
         // @pseudocode: tmp.hi = rd_val, tmp.lo = dat + Y, skip next if no carry
-        todo!("Action SET_TMP_FULL_INC_BY_Y_SKIP_IF_NO_CARRY");
+        cpu.internal.tmp_hi = cpu.internal.rd_val;
+        let (incr, carry) = cpu.internal.dat.overflowing_add(cpu.regs.y.get());
+        cpu.internal.tmp_lo = incr;
+        if !carry {
+            cpu.skip_next_cycle();
+        }
     },
     INC_TMP_HI => |cpu| {
         // @pseudocode: tmp.hi += 1
-        todo!("Action INC_TMP_HI");
+        cpu.internal.tmp_hi = cpu.internal.tmp_hi.wrapping_add(1);
     },
     CARRY_INTO_TMP_HI => |cpu| {
-        // @pseudocode: tmp.hi += carry
-        todo!("Action CARRY_INTO_TMP_HI");
+        // @pseudocode: tmp.hi += dat
+        cpu.internal.tmp_hi = cpu.internal.tmp_hi.wrapping_add(cpu.internal.dat);
     },
     CARRY_INTO_TMP_HI_INVOKE_OP_DAT => |cpu| {
-        // @pseudocode: tmp.hi += carry, op(dat)
-        todo!("Action CARRY_INTO_TMP_HI_INVOKE_OP_DAT");
+        // @pseudocode: tmp.hi += dat, op(dat)
+        cpu.internal.tmp_hi = cpu.internal.tmp_hi.wrapping_add(cpu.internal.dat);
+        let mut val = cpu.internal.dat;
+        (cpu.op_func)(cpu, &mut val);
+        cpu.internal.dat = val;
     },
     INC_TMP_BY_X => |cpu| {
         // @pseudocode: tmp.lo += X
-        todo!("Action INC_TMP_BY_X");
+        cpu.internal.tmp_lo = cpu.internal.tmp_lo.wrapping_add(cpu.regs.x.get());
     },
     INC_TMP_BY_X_INVOKE_OP_DAT => |cpu| {
         // @pseudocode: tmp.lo += X, op(dat)
-        todo!("Action INC_TMP_BY_X_INVOKE_OP_DAT");
+        cpu.internal.tmp_lo = cpu.internal.tmp_lo.wrapping_add(cpu.regs.x.get());
+        let mut val = cpu.internal.dat;
+        (cpu.op_func)(cpu, &mut val);
+        cpu.internal.dat = val;
     },
     INC_TMP_BY_Y => |cpu| {
         // @pseudocode: tmp.lo += Y
-        todo!("Action INC_TMP_BY_Y");
+        cpu.internal.tmp_lo = cpu.internal.tmp_lo.wrapping_add(cpu.regs.y.get());
     },
     INC_TMP_BY_Y_INVOKE_OP_DAT => |cpu| {
         // @pseudocode: tmp.lo += Y, op(dat)
-        todo!("Action INC_TMP_BY_Y_INVOKE_OP_DAT");
+        cpu.internal.tmp_lo = cpu.internal.tmp_lo.wrapping_add(cpu.regs.y.get());
+        let mut val = cpu.internal.dat;
+        (cpu.op_func)(cpu, &mut val);
+        cpu.internal.dat = val;
     },
     SAVE_PC_HI => |cpu| {
         // @pseudocode: dat = PC.hi
@@ -167,15 +217,20 @@ action_defs! {
     },
     SAVE_P => |cpu| {
         // @pseudocode: dat = P
-        todo!("Action SAVE_P");
+        cpu.internal.dat = cpu.regs.p.get().as_stk_u8(false);
     },
     SAVE_P_BRK => |cpu| {
         // @pseudocode: dat = P+B
-        todo!("Action SAVE_P_BRK");
+        cpu.internal.dat = cpu.regs.p.get().as_stk_u8(true);
     },
     SAVE_RD_VAL_STOP_IF_NO_BRANCH => |cpu| {
         // @pseudocode: dat = rd_val, done if branch not taken
-        todo!("Action SAVE_RD_VAL_STOP_IF_NO_BRANCH");
+        cpu.internal.dat = cpu.internal.rd_val;
+        let mut cond = 0;
+        (cpu.op_func)(cpu, &mut cond);
+        if cond == 0 {
+            cpu.end_instruction();
+        }
     },
     SAVE_RD_VAL_INC_TMP => |cpu| {
         // @pseudocode: dat = rd_val, tmp.lo += 1
@@ -190,10 +245,14 @@ action_defs! {
     },
     SET_IRQ_VEC => |cpu| {
         // @pseudocode: tmp.hi = 0xFF, tmp.lo = 0xFE, P.I = 1
-        todo!("Action SET_IRQ_VEC");
+        cpu.internal.tmp_hi = 0xFF;
+        cpu.internal.tmp_lo = 0xFE;
+        cpu.regs.p.update(|p| p.with_i(true));
     },
     SET_NMI_VEC => |cpu| {
         // @pseudocode: tmp.hi = 0xFF, tmp.lo = 0xFA, P.I = 1
-        todo!("Action SET_NMI_VEC");
+        cpu.internal.tmp_hi = 0xFF;
+        cpu.internal.tmp_lo = 0xFA;
+        cpu.regs.p.update(|p| p.with_i(true));
     },
 }

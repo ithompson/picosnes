@@ -8,6 +8,8 @@ pub static OPCODE_TABLE: [Option<Opcode>; 256] = {
     {% set mnemonic_data = cpu_data.mnemonics[instr_data.mnemonic] %}
     {% if mnemonic_data.op %}
         {% set op_name = instr_data.mnemonic|lower %}
+    {% elif mnemonic_data.branch_cond %}
+        {% set op_name = instr_data.mnemonic|lower %}
     {% else %}
         {% set op_name = "nop" %}
     {% endif %}

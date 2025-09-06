@@ -12,7 +12,7 @@ pub static OPCODE_TABLE: [Option<Opcode>; 256] = {
     opcode!(ops, 0x0A, "ASL A", ACC_RMW_SEQUENCE, asl);
     opcode!(ops, 0x0D, "ORA $addr", ABS_READ_SEQUENCE, ora);
     opcode!(ops, 0x0E, "ASL $addr", ABS_RMW_SEQUENCE, asl);
-    opcode!(ops, 0x10, "BPL label", REL_BRANCH_SEQUENCE, nop);
+    opcode!(ops, 0x10, "BPL label", REL_BRANCH_SEQUENCE, bpl);
     opcode!(ops, 0x11, "ORA ($zp),Y", INDY_READ_SEQUENCE, ora);
     opcode!(ops, 0x15, "ORA $zp,X", ZPX_READ_SEQUENCE, ora);
     opcode!(ops, 0x16, "ASL $zp,X", ZPX_RMW_SEQUENCE, asl);
@@ -31,7 +31,7 @@ pub static OPCODE_TABLE: [Option<Opcode>; 256] = {
     opcode!(ops, 0x2C, "BIT $addr", ABS_READ_SEQUENCE, bit);
     opcode!(ops, 0x2D, "AND $addr", ABS_READ_SEQUENCE, and);
     opcode!(ops, 0x2E, "ROL $addr", ABS_RMW_SEQUENCE, rol);
-    opcode!(ops, 0x30, "BMI label", REL_BRANCH_SEQUENCE, nop);
+    opcode!(ops, 0x30, "BMI label", REL_BRANCH_SEQUENCE, bmi);
     opcode!(ops, 0x31, "AND ($zp),Y", INDY_READ_SEQUENCE, and);
     opcode!(ops, 0x35, "AND $zp,X", ZPX_READ_SEQUENCE, and);
     opcode!(ops, 0x36, "ROL $zp,X", ZPX_RMW_SEQUENCE, rol);
@@ -49,7 +49,7 @@ pub static OPCODE_TABLE: [Option<Opcode>; 256] = {
     opcode!(ops, 0x4C, "JMP $addr", ABS_JMP_SEQUENCE, nop);
     opcode!(ops, 0x4D, "EOR $addr", ABS_READ_SEQUENCE, eor);
     opcode!(ops, 0x4E, "LSR $addr", ABS_RMW_SEQUENCE, lsr);
-    opcode!(ops, 0x50, "BVC label", REL_BRANCH_SEQUENCE, nop);
+    opcode!(ops, 0x50, "BVC label", REL_BRANCH_SEQUENCE, bvc);
     opcode!(ops, 0x51, "EOR ($zp),Y", INDY_READ_SEQUENCE, eor);
     opcode!(ops, 0x55, "EOR $zp,X", ZPX_READ_SEQUENCE, eor);
     opcode!(ops, 0x56, "LSR $zp,X", ZPX_RMW_SEQUENCE, lsr);
@@ -67,7 +67,7 @@ pub static OPCODE_TABLE: [Option<Opcode>; 256] = {
     opcode!(ops, 0x6C, "JMP ($addr)", ABSIND_JMP_SEQUENCE, nop);
     opcode!(ops, 0x6D, "ADC $addr", ABS_READ_SEQUENCE, adc);
     opcode!(ops, 0x6E, "ROR $addr", ABS_RMW_SEQUENCE, ror);
-    opcode!(ops, 0x70, "BVS label", REL_BRANCH_SEQUENCE, nop);
+    opcode!(ops, 0x70, "BVS label", REL_BRANCH_SEQUENCE, bvs);
     opcode!(ops, 0x71, "ADC ($zp),Y", INDY_READ_SEQUENCE, adc);
     opcode!(ops, 0x75, "ADC $zp,X", ZPX_READ_SEQUENCE, adc);
     opcode!(ops, 0x76, "ROR $zp,X", ZPX_RMW_SEQUENCE, ror);
@@ -84,7 +84,7 @@ pub static OPCODE_TABLE: [Option<Opcode>; 256] = {
     opcode!(ops, 0x8C, "STY $addr", ABS_WRITE_SEQUENCE, sty);
     opcode!(ops, 0x8D, "STA $addr", ABS_WRITE_SEQUENCE, sta);
     opcode!(ops, 0x8E, "STX $addr", ABS_WRITE_SEQUENCE, stx);
-    opcode!(ops, 0x90, "BCC label", REL_BRANCH_SEQUENCE, nop);
+    opcode!(ops, 0x90, "BCC label", REL_BRANCH_SEQUENCE, bcc);
     opcode!(ops, 0x91, "STA ($zp),Y", INDY_WRITE_SEQUENCE, sta);
     opcode!(ops, 0x94, "STY $zp,X", ZPX_WRITE_SEQUENCE, sty);
     opcode!(ops, 0x95, "STA $zp,X", ZPX_WRITE_SEQUENCE, sta);
@@ -105,7 +105,7 @@ pub static OPCODE_TABLE: [Option<Opcode>; 256] = {
     opcode!(ops, 0xAC, "LDY $addr", ABS_READ_SEQUENCE, ldy);
     opcode!(ops, 0xAD, "LDA $addr", ABS_READ_SEQUENCE, lda);
     opcode!(ops, 0xAE, "LDX $addr", ABS_READ_SEQUENCE, ldx);
-    opcode!(ops, 0xB0, "BCS label", REL_BRANCH_SEQUENCE, nop);
+    opcode!(ops, 0xB0, "BCS label", REL_BRANCH_SEQUENCE, bcs);
     opcode!(ops, 0xB1, "LDA ($zp),Y", INDY_READ_SEQUENCE, lda);
     opcode!(ops, 0xB4, "LDY $zp,X", ZPX_READ_SEQUENCE, ldy);
     opcode!(ops, 0xB5, "LDA $zp,X", ZPX_READ_SEQUENCE, lda);
@@ -127,7 +127,7 @@ pub static OPCODE_TABLE: [Option<Opcode>; 256] = {
     opcode!(ops, 0xCC, "CPY $addr", ABS_READ_SEQUENCE, cpy);
     opcode!(ops, 0xCD, "CMP $addr", ABS_READ_SEQUENCE, cmp);
     opcode!(ops, 0xCE, "DEC $addr", ABS_RMW_SEQUENCE, dec);
-    opcode!(ops, 0xD0, "BNE label", REL_BRANCH_SEQUENCE, nop);
+    opcode!(ops, 0xD0, "BNE label", REL_BRANCH_SEQUENCE, bne);
     opcode!(ops, 0xD1, "CMP ($zp),Y", INDY_READ_SEQUENCE, cmp);
     opcode!(ops, 0xD5, "CMP $zp,X", ZPX_READ_SEQUENCE, cmp);
     opcode!(ops, 0xD6, "DEC $zp,X", ZPX_RMW_SEQUENCE, dec);
@@ -146,7 +146,7 @@ pub static OPCODE_TABLE: [Option<Opcode>; 256] = {
     opcode!(ops, 0xEC, "CPX $addr", ABS_READ_SEQUENCE, cpx);
     opcode!(ops, 0xED, "SBC $addr", ABS_READ_SEQUENCE, sbc);
     opcode!(ops, 0xEE, "INC $addr", ABS_RMW_SEQUENCE, inc);
-    opcode!(ops, 0xF0, "BEQ label", REL_BRANCH_SEQUENCE, nop);
+    opcode!(ops, 0xF0, "BEQ label", REL_BRANCH_SEQUENCE, beq);
     opcode!(ops, 0xF1, "SBC ($zp),Y", INDY_READ_SEQUENCE, sbc);
     opcode!(ops, 0xF5, "SBC $zp,X", ZPX_READ_SEQUENCE, sbc);
     opcode!(ops, 0xF6, "INC $zp,X", ZPX_RMW_SEQUENCE, inc);

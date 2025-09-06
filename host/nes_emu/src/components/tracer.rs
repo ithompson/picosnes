@@ -94,7 +94,7 @@ impl Tracer {
         let component_data = &self.data.borrow().components[reg.component.0];
         let reg_data = &component_data.regs[reg.reg];
         println!(
-            "[TRACE][{}][REG] {} = {}",
+            "[TRACE][{}][REG]       {} = {}",
             component_data.name,
             reg_data.name,
             TraceDisplay(&value)
@@ -112,7 +112,7 @@ impl Tracer {
         }
         let component_data = &self.data.borrow().components[initiator.0];
         println!(
-            "[TRACE][{}][MEM] RD 0x{:04X} => {}",
+            "[TRACE][{}][MEM]       RD 0x{:04X} => {}",
             component_data.name,
             addr,
             TraceDisplay(&value)
@@ -129,7 +129,7 @@ impl Tracer {
         }
         let component_data = &self.data.borrow().components[initiator.0];
         println!(
-            "[TRACE][{}][MEM] WR 0x{:04X} => {}",
+            "[TRACE][{}][MEM]       WR 0x{:04X} => {}",
             component_data.name,
             addr,
             TraceDisplay(&value)
@@ -150,7 +150,7 @@ impl Tracer {
             return;
         }
         let component_data = &self.data.borrow().components[initiator.0];
-        println!("[TRACE][{}][SEQ] {}", component_data.name, action);
+        println!("[TRACE][{}][SEQ]     {}", component_data.name, action);
     }
 }
 

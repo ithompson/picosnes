@@ -41,6 +41,8 @@ class MnemonicData(BaseModel):
     """Optional pseudocode for the data operation attached to this mnemonic"""
     flags: str | None = None
     """Optional pseudocode for flags impacted by this mnemonic"""
+    branch_cond: str | None = None
+    """For branch type operations, the branch condition"""
 
 class InstructionData(BaseModel):
     """Represents the definition of a CPU instruction"""

@@ -9,7 +9,9 @@ pub fn nop(_cpu: &mut Cpu6502, _val: &mut u8) {
 pub fn adc(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: A += {reg}
     // @flags: NZC = ALU
-    todo!("Mnemonic ADC");
+    let (val, carry) = cpu.regs.a.get().overflowing_add(*val);
+    cpu.regs.a.set(val);
+    cpu.regs.p.update(|p| p.with_nzc_from_value(val, carry));
 }
 pub fn and(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: A &= {reg}
@@ -22,12 +24,19 @@ pub fn and(cpu: &mut Cpu6502, val: &mut u8) {
 pub fn asl(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: {reg} <<= 1
     // @flags: NZC = ALU
-    todo!("Mnemonic ASL");
+    let carry = *val & 0x80;
+    *val <<= 1;
+    cpu.regs
+        .p
+        .update(|p| p.with_nzc_from_value(*val, carry != 0));
 }
 pub fn bit(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: A & {reg}
     // @flags: Z = ALU, N = M7, V = M6
-    todo!("Mnemonic BIT");
+    let m7 = *val & 0x80 != 0;
+    let m6 = *val & 0x40 != 0;
+    let z = cpu.regs.a.get() & *val == 0;
+    cpu.regs.p.update(|p| p.with_nzv(m7, z, m6));
 }
 pub fn clc(cpu: &mut Cpu6502, _val: &mut u8) {
     // @pseudocode: P.C = 0
@@ -48,17 +57,20 @@ pub fn clv(cpu: &mut Cpu6502, _val: &mut u8) {
 pub fn cmp(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: A - {reg}
     // @flags: NZC = ALU
-    todo!("Mnemonic CMP");
+    let (result, carry) = cpu.regs.a.get().overflowing_sub(*val);
+    cpu.regs.p.update(|p| p.with_nzc_from_value(result, carry));
 }
 pub fn cpx(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: X - {reg}
     // @flags: NZC = ALU
-    todo!("Mnemonic CPX");
+    let (result, carry) = cpu.regs.x.get().overflowing_sub(*val);
+    cpu.regs.p.update(|p| p.with_nzc_from_value(result, carry));
 }
 pub fn cpy(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: Y - {reg}
     // @flags: NZC = ALU
-    todo!("Mnemonic CPY");
+    let (result, carry) = cpu.regs.y.get().overflowing_sub(*val);
+    cpu.regs.p.update(|p| p.with_nzc_from_value(result, carry));
 }
 pub fn dec(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: {reg} -= 1
@@ -133,7 +145,11 @@ pub fn ldy(cpu: &mut Cpu6502, val: &mut u8) {
 pub fn lsr(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: {reg} >>= 1
     // @flags: N = 0, ZC = ALU
-    todo!("Mnemonic LSR");
+    let carry = *val & 1;
+    *val >>= 1;
+    cpu.regs
+        .p
+        .update(|p| p.with_nzc_from_value(*val, carry != 0));
 }
 pub fn ora(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: A |= {reg}
@@ -164,12 +180,20 @@ pub fn plp(cpu: &mut Cpu6502, val: &mut u8) {
 pub fn rol(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: {reg} ROL= 1
     // @flags: NZ = ALU, C = {reg}7
-    todo!("Mnemonic ROL");
+    let carry = *val & 0x80;
+    *val = (*val << 1) | (carry >> 7);
+    cpu.regs
+        .p
+        .update(|p| p.with_nzc_from_value(*val, carry != 0));
 }
 pub fn ror(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: {reg} ROR= 1
     // @flags: NZ = ALU, C = {reg}0
-    todo!("Mnemonic ROR");
+    let carry = *val & 1;
+    *val = (*val >> 1) | (carry << 7);
+    cpu.regs
+        .p
+        .update(|p| p.with_nzc_from_value(*val, carry != 0));
 }
 pub fn sbc(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: A -= {reg}

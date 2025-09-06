@@ -1,8 +1,9 @@
 use crate::components::{
-    BusDevice, GenericRouter, RAMDevice, ReadResult,
+    BusDevice, GenericRouter, MirroringWrapper, RAMDevice, ROMDevice, ReadResult,
     cpu::{BusAccess, Cpu6502},
     tracer::Tracer,
 };
+use crate::nes_file::NesFile;
 
 pub struct NESSystem<'t> {
     cpu: Cpu6502<'t>,
@@ -11,26 +12,41 @@ pub struct NESSystem<'t> {
 }
 
 impl<'t> NESSystem<'t> {
-    pub fn new(tracer: &'t Tracer) -> Self {
+    pub fn new(tracer: &'t Tracer, rom: NesFile) -> Self {
         let mut system = NESSystem {
             cpu: Cpu6502::new(tracer),
             cpu_bus: GenericRouter::new(),
             tracer,
         };
-        let sysmem = Box::new(RAMDevice::new(0x4000)); // 16KB of system RAM
-        system.cpu_bus.add_device(0x0000, 0x0000, 0x4000, sysmem);
-        let bootmem = Box::new(RAMDevice::new(0x10)); // 16 bytes of boot RAM
-        system.cpu_bus.add_device(0xFFF0, 0x0000, 0x0010, bootmem);
+        // Internal RAM: 0x0000 - 0x1FFF, mirroring every 0x0800 bytes
+        let internal_ram = RAMDevice::new(0x800);
+        let mirrorred_internal_ram = MirroringWrapper::new(internal_ram, 11);
+        system
+            .cpu_bus
+            .add_device(0x0000, 0x0000, 0x2000, Box::new(mirrorred_internal_ram));
 
-        // Pre-populate a tiny program
-        system.cpu_bus.bus_write(0x200, 0xE6); // INC $zp
-        system.cpu_bus.bus_write(0x201, 0x00); // zp:0x00
-        system.cpu_bus.bus_write(0x202, 0x4C); // JMP $abs
-        system.cpu_bus.bus_write(0x203, 0x00); // abs:lo
-        system.cpu_bus.bus_write(0x204, 0x02); // abs:hi
-        // Reset vector
-        system.cpu_bus.bus_write(0xFFFC, 0x00); // Reset vector lo
-        system.cpu_bus.bus_write(0xFFFD, 0x02); // Reset vector hi
+        // PPU: 0x2000 - 0x3FFF, mirroring every 0x0008 bytes
+        let fake_ppu = RAMDevice::new(0x8);
+        let mirrored_ppu = MirroringWrapper::new(fake_ppu, 3);
+        system
+            .cpu_bus
+            .add_device(0x2000, 0x0, 0x2000, Box::new(mirrored_ppu));
+
+        // APU and IO: 0x4000 - 0x4017
+        let fake_apu = RAMDevice::new(0x18);
+        system
+            .cpu_bus
+            .add_device(0x4000, 0x0, 0x18, Box::new(fake_apu));
+
+        let prg_ram = Box::new(RAMDevice::new(rom.prg_ram_size));
+        system.cpu_bus.add_device(0x6000, 0x0, 0x1FFF, prg_ram);
+
+        // FIXME: temporary assumptions that work for the test ROMs
+        // Mapper 1, PRG-ROM small enough that no bank switching is needed
+        assert!(rom.mapper.id == 0);
+        assert!(rom.prg_rom.len() == 0x8000);
+        let prg_rom = Box::new(ROMDevice::new(rom.prg_rom));
+        system.cpu_bus.add_device(0x8000, 0x0000, 0x7FFF, prg_rom);
 
         system
     }
@@ -42,7 +58,7 @@ impl<'t> NESSystem<'t> {
             let bus_op = self.cpu.tick(data_bus);
             match bus_op {
                 BusAccess::Read(addr) => {
-                    match self.cpu_bus.bus_read(addr) {
+                    match self.cpu_bus.bus_read(addr as u32) {
                         ReadResult::Data(value) => data_bus = value,
                         ReadResult::OpenBus => {}
                     }
@@ -53,7 +69,7 @@ impl<'t> NESSystem<'t> {
                 BusAccess::Write(addr, value) => {
                     // Handle write operation
                     data_bus = value;
-                    self.cpu_bus.bus_write(addr, value);
+                    self.cpu_bus.bus_write(addr as u32, value);
 
                     self.tracer
                         .trace_mem_write(self.cpu.trace_component_id(), addr, value);

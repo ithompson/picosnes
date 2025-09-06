@@ -30,9 +30,9 @@ pub fn clc(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: P.C = 0
     todo!("Mnemonic CLC");
 }
-pub fn cld(cpu: &mut Cpu6502, val: &mut u8) {
+pub fn cld(cpu: &mut Cpu6502, _val: &mut u8) {
     // @pseudocode: P.D = 0
-    todo!("Mnemonic CLD");
+    cpu.regs.p.update(|p| p.with_d(false));
 }
 pub fn cli(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: P.I = 0
@@ -83,30 +83,39 @@ pub fn inc(cpu: &mut Cpu6502, val: &mut u8) {
     *val = val.wrapping_add(1);
     cpu.regs.p.update(|p| p.with_nz_from_value(*val));
 }
-pub fn inx(cpu: &mut Cpu6502, val: &mut u8) {
+pub fn inx(cpu: &mut Cpu6502, _val: &mut u8) {
     // @pseudocode: X += 1
     // @flags: NZ = ALU
-    todo!("Mnemonic INX");
+    cpu.regs.x.update(|x| x.wrapping_add(1));
+    cpu.regs
+        .p
+        .update(|p| p.with_nz_from_value(cpu.regs.x.get()));
 }
-pub fn iny(cpu: &mut Cpu6502, val: &mut u8) {
+pub fn iny(cpu: &mut Cpu6502, _val: &mut u8) {
     // @pseudocode: Y += 1
     // @flags: NZ = ALU
-    todo!("Mnemonic INY");
+    cpu.regs.y.update(|y| y.wrapping_add(1));
+    cpu.regs
+        .p
+        .update(|p| p.with_nz_from_value(cpu.regs.y.get()));
 }
 pub fn lda(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: A = {reg}
     // @flags: NZ = ALU
-    todo!("Mnemonic LDA");
+    cpu.regs.a.set(*val);
+    cpu.regs.p.update(|p| p.with_nz_from_value(*val));
 }
 pub fn ldx(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: X = {reg}
     // @flags: NZ = ALU
-    todo!("Mnemonic LDX");
+    cpu.regs.x.set(*val);
+    cpu.regs.p.update(|p| p.with_nz_from_value(*val));
 }
 pub fn ldy(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: Y = {reg}
     // @flags: NZ = ALU
-    todo!("Mnemonic LDY");
+    cpu.regs.y.set(*val);
+    cpu.regs.p.update(|p| p.with_nz_from_value(*val));
 }
 pub fn lsr(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: {reg} >>= 1
@@ -158,21 +167,21 @@ pub fn sed(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: P.D = 1
     todo!("Mnemonic SED");
 }
-pub fn sei(cpu: &mut Cpu6502, val: &mut u8) {
+pub fn sei(cpu: &mut Cpu6502, _val: &mut u8) {
     // @pseudocode: P.I = 1
-    todo!("Mnemonic SEI");
+    cpu.regs.p.update(|p| p.with_i(true));
 }
 pub fn sta(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: {reg} = A
-    todo!("Mnemonic STA");
+    *val = cpu.regs.a.get();
 }
 pub fn stx(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: {reg} = X
-    todo!("Mnemonic STX");
+    *val = cpu.regs.x.get();
 }
 pub fn sty(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: {reg} = Y
-    todo!("Mnemonic STY");
+    *val = cpu.regs.y.get();
 }
 pub fn tax(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: X = A
@@ -194,9 +203,9 @@ pub fn txa(cpu: &mut Cpu6502, val: &mut u8) {
     // @flags: NZ = ALU
     todo!("Mnemonic TXA");
 }
-pub fn txs(cpu: &mut Cpu6502, val: &mut u8) {
+pub fn txs(cpu: &mut Cpu6502, _val: &mut u8) {
     // @pseudocode: S = X
-    todo!("Mnemonic TXS");
+    cpu.regs.s.set(cpu.regs.x.get());
 }
 pub fn tya(cpu: &mut Cpu6502, val: &mut u8) {
     // @pseudocode: A = Y

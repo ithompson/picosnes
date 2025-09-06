@@ -43,7 +43,8 @@ action_defs! {
     },
     INVOKE_OP => |cpu| {
         // @pseudocode: op()
-        todo!("Action INVOKE_OP");
+        let mut val = 0;
+        (cpu.op_func)(cpu, &mut val);
     },
     INVOKE_OP_A => |cpu| {
         // @pseudocode: op(A)
@@ -57,7 +58,8 @@ action_defs! {
     },
     INVOKE_OP_RD_VAL => |cpu| {
         // @pseudocode: op(rd_val)
-        todo!("Action INVOKE_OP_RD_VAL");
+        let mut val = cpu.internal.rd_val;
+        (cpu.op_func)(cpu, &mut val);
     },
     SET_TMP_LO => |cpu| {
         // @pseudocode: tmp.lo = rd_val
@@ -78,15 +80,26 @@ action_defs! {
     },
     SET_TMP_HI_INVOKE_OP_DAT => |cpu| {
         // @pseudocode: tmp.hi = rd_val, op(dat)
-        todo!("Action SET_TMP_HI_INVOKE_OP_DAT");
+        cpu.internal.tmp_hi = cpu.internal.rd_val;
+        let mut val = cpu.internal.dat;
+        (cpu.op_func)(cpu, &mut val);
+        cpu.internal.dat = val;
     },
     SET_TMP_ZP_INVOKE_OP_DAT => |cpu| {
         // @pseudocode: tmp.lo = rd_val, tmp.hi = 0, op(dat)
-        todo!("Action SET_TMP_ZP_INVOKE_OP_DAT");
+        cpu.internal.tmp_lo = cpu.internal.rd_val;
+        cpu.internal.tmp_hi = 0;
+        let mut val = cpu.internal.dat;
+        (cpu.op_func)(cpu, &mut val);
+        cpu.internal.dat = val;
     },
     SET_TMP_FULL_INVOKE_OP_DAT => |cpu| {
         // @pseudocode: tmp.hi = rd_val, tmp.lo = dat, op(dat)
-        todo!("Action SET_TMP_FULL_INVOKE_OP_DAT");
+        cpu.internal.tmp_hi = cpu.internal.rd_val;
+        cpu.internal.tmp_lo = cpu.internal.dat;
+        let mut val = cpu.internal.dat;
+        (cpu.op_func)(cpu, &mut val);
+        cpu.internal.dat = val;
     },
     SET_TMP_HI_INC_BY_X_RECORD_CARRY => |cpu| {
         // @pseudocode: tmp.hi = rd_val, tmp.lo += X, record carry
@@ -142,11 +155,11 @@ action_defs! {
     },
     SAVE_PC_HI => |cpu| {
         // @pseudocode: dat = PC.hi
-        todo!("Action SAVE_PC_HI");
+        cpu.internal.dat = (cpu.regs.pc.get() >> 8) as u8;
     },
     SAVE_PC_LO => |cpu| {
         // @pseudocode: dat = PC.lo
-        todo!("Action SAVE_PC_LO");
+        cpu.internal.dat = (cpu.regs.pc.get() & 0xFF) as u8;
     },
     SAVE_RD_VAL => |cpu| {
         // @pseudocode: dat = rd_val
@@ -166,7 +179,8 @@ action_defs! {
     },
     SAVE_RD_VAL_INC_TMP => |cpu| {
         // @pseudocode: dat = rd_val, tmp.lo += 1
-        todo!("Action SAVE_RD_VAL_INC_TMP");
+        cpu.internal.dat = cpu.internal.rd_val;
+        cpu.internal.tmp_lo = cpu.internal.tmp_lo.wrapping_add(1);
     },
     SET_RESET_VEC => |cpu| {
         // @pseudocode: tmp.hi = 0xFF, tmp.lo = 0xFC, P.I = 1

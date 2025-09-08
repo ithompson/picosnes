@@ -6,7 +6,7 @@ use std::fmt;
 
 use sequences::{CpuCycle, MemCycle};
 
-use super::tracer::{TraceComponentId, TraceableReg, TraceableValue, Tracer};
+use super::tracer::{TraceElementId, TraceableReg, TraceableValue, Tracer};
 use opcodes::OPCODE_TABLE;
 use ops::OpFunc;
 
@@ -149,14 +149,14 @@ struct ArchRegs<'t> {
 }
 
 impl<'t> ArchRegs<'t> {
-    fn new(tracer: &'t Tracer, component_id: TraceComponentId) -> Self {
+    fn new(tracer: &'t Tracer, trace_parent: TraceElementId) -> Self {
         Self {
-            a: TraceableReg::new("A", tracer, component_id),
-            x: TraceableReg::new("X", tracer, component_id),
-            y: TraceableReg::new("Y", tracer, component_id),
-            p: TraceableReg::new("P", tracer, component_id),
-            s: TraceableReg::new("S", tracer, component_id),
-            pc: TraceableReg::new("PC", tracer, component_id),
+            a: TraceableReg::new("A", tracer, trace_parent),
+            x: TraceableReg::new("X", tracer, trace_parent),
+            y: TraceableReg::new("Y", tracer, trace_parent),
+            p: TraceableReg::new("P", tracer, trace_parent),
+            s: TraceableReg::new("S", tracer, trace_parent),
+            pc: TraceableReg::new("PC", tracer, trace_parent),
         }
     }
 }
@@ -176,7 +176,9 @@ pub struct Cpu6502<'a> {
     op_func: OpFunc,
 
     tracer: &'a Tracer,
-    trace_component: TraceComponentId,
+    mem_trace_element: TraceElementId,
+    seq_trace_element: TraceElementId,
+    instr_trace_element: TraceElementId,
 
     nmi_pending: bool,
     irq_signaled: bool,
@@ -190,22 +192,29 @@ pub enum BusAccess {
 
 impl<'a> Cpu6502<'a> {
     pub fn new(tracer: &'a Tracer) -> Self {
-        let trace_component = tracer.add_component("CPU");
+        let root_trace_element = tracer.register_element("cpu", None);
+        let mem_trace_element = tracer.register_element("mem", Some(root_trace_element));
+        let regs_trace_element = tracer.register_element("regs", Some(root_trace_element));
+        let seq_trace_element = tracer.register_element("seq", Some(root_trace_element));
+        let instr_trace_element = tracer.register_element("instr", Some(root_trace_element));
+
         Cpu6502 {
-            regs: ArchRegs::new(tracer, trace_component),
+            regs: ArchRegs::new(tracer, regs_trace_element),
             internal: Default::default(),
             op_func: ops::nop,
             sequence: sequences::RESET_SEQUENCE,
             tracer,
-            trace_component,
+            mem_trace_element,
+            seq_trace_element,
+            instr_trace_element,
 
             nmi_pending: false,
             irq_signaled: false,
         }
     }
 
-    pub fn trace_component_id(&self) -> TraceComponentId {
-        self.trace_component
+    pub fn mem_trace_element(&self) -> TraceElementId {
+        self.mem_trace_element
     }
 
     pub fn trigger_nmi(&mut self) {
@@ -231,8 +240,10 @@ impl<'a> Cpu6502<'a> {
         let (action, mem_cycle) = self.sequence.first().unwrap();
         self.sequence = &self.sequence[1..];
 
-        self.tracer
-            .trace_seq_action(self.trace_component, action.trace_name);
+        self.tracer.trace_event(
+            self.seq_trace_element,
+            format_args!("    {}", action.trace_name),
+        );
         (action.action_func)(self);
 
         match mem_cycle {
@@ -295,11 +306,14 @@ impl<'a> Cpu6502<'a> {
         } else if self.irq_signaled && !self.regs.p.get().i {
             self.sequence = sequences::IRQ_SEQUENCE;
         } else if let Some(opdesc) = &OPCODE_TABLE[opcode as usize] {
-            self.tracer.trace_instr(
-                self.trace_component,
-                self.regs.pc.get(),
-                opdesc.code,
-                opdesc.name,
+            self.tracer.trace_event(
+                self.instr_trace_element,
+                format_args!(
+                    "0x{:04X} 0x{:02X} {}",
+                    self.regs.pc.get(),
+                    opdesc.code,
+                    opdesc.name
+                ),
             );
             self.sequence = opdesc.sequence;
             self.op_func = opdesc.op_func;

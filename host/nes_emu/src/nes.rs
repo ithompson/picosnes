@@ -63,16 +63,20 @@ impl<'t> NESSystem<'t> {
                         ReadResult::OpenBus => {}
                     }
 
-                    self.tracer
-                        .trace_mem_read(self.cpu.trace_component_id(), addr, data_bus);
+                    self.tracer.trace_event(
+                        self.cpu.mem_trace_element(),
+                        format_args!("      RD 0x{:04X} => {}", addr, data_bus),
+                    );
                 }
                 BusAccess::Write(addr, value) => {
                     // Handle write operation
                     data_bus = value;
                     self.cpu_bus.bus_write(addr as u32, value);
 
-                    self.tracer
-                        .trace_mem_write(self.cpu.trace_component_id(), addr, value);
+                    self.tracer.trace_event(
+                        self.cpu.mem_trace_element(),
+                        format_args!("      RD 0x{:04X} => {}", addr, data_bus),
+                    );
                 }
             }
         }

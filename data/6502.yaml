@@ -1,6 +1,6 @@
 actions:
   # Special
-  nop: ""
+  nop: "nop"
   dispatch: "dispatch(rd_val)"
   set_p: "P = rd_val"
   dec_s: "S -= 1"
@@ -446,7 +446,7 @@ mnemonics:
   NOP:
     description: "No operation"
     access_subtype: Nomem
-    op: ""
+    op: "nop"
   ORA:
     description: "Logical OR with accumulator"
     access_subtype: Read

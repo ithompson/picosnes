@@ -3,7 +3,7 @@ use super::{ArchPSR, Cpu6502};
 pub type OpFunc = fn(&mut Cpu6502, &mut u8) -> ();
 
 pub fn nop(_cpu: &mut Cpu6502, _val: &mut u8) {
-    // No operation
+    // @pseudocode: nop
 }
 
 pub fn adc(cpu: &mut Cpu6502, val: &mut u8) {

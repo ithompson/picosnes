@@ -3,7 +3,7 @@ use super::*;
 
 action_defs! {
     NOP => || {
-        // @pseudocode:
+        // @pseudocode: nop
     },
     DISPATCH => |cpu| {
         // @pseudocode: dispatch(rd_val)

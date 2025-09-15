@@ -1,12 +1,3 @@
-# /// script
-# requires-python = ">=3.13"
-# dependencies = [
-#     "ast-grep-py",
-#     "jinja2",
-#     "pydantic-yaml",
-# ]
-# ///
-
 import argparse
 from collections import defaultdict
 from pathlib import Path
@@ -18,7 +9,7 @@ from ast_grep_py import Config as SgConfig
 from pydantic_yaml import parse_yaml_file_as
 import jinja2
 
-from utils.cpu_data import CpuData
+from .utils.cpu_data import CpuData
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 
@@ -47,7 +38,7 @@ def filter_rust_mem_cycle(s: str) -> str:
     return RUST_MEM_CYCLE_NAMES[s]
 
 
-JINJA_ENV.filters["rust_mem_cycle"] = filter_rust_mem_cycle
+JINJA_ENV.filters["rust_mem_cycle"] = filter_rust_mem_cycle  # type: ignore
 
 
 def get_keyed_comments_for_ops(cpu_data: CpuData) -> Dict[str, Dict[str, str]]:
@@ -81,7 +72,7 @@ def get_keyed_comments_for_actions(cpu_data: CpuData) -> Dict[str, Dict[str, str
     }
 
 
-def generate_rust_code(cpu_data: CpuData, args):
+def generate_rust_code(cpu_data: CpuData, args: argparse.Namespace):
     """Emit the auto-generated rust files describing the CPU micro-architecture"""
 
     # Build a table of all sequences that need to be implemented
@@ -113,7 +104,7 @@ def generate_rust_code(cpu_data: CpuData, args):
         f.write(sequence_table_content)
 
 
-def generate_rust_op_skeleton(cpu_data: CpuData, args):
+def generate_rust_op_skeleton(cpu_data: CpuData, args: argparse.Namespace):
     """Print a starting point skeleton for Rust implementation of all cpu ops"""
     op_skeleton_template = JINJA_ENV.get_template("op_skeleton.rs.jinja2")
     op_comments = get_keyed_comments_for_ops(cpu_data)
@@ -124,7 +115,7 @@ def generate_rust_op_skeleton(cpu_data: CpuData, args):
     print(op_skeleton_content)
 
 
-def generate_rust_action_skeleton(cpu_data: CpuData, args):
+def generate_rust_action_skeleton(cpu_data: CpuData, args: argparse.Namespace):
     """Print a starting point skeleton for Rust implementation of all cpu actions"""
     action_skeleton_template = JINJA_ENV.get_template("action_skeleton.rs.jinja2")
     action_comments = get_keyed_comments_for_actions(cpu_data)
@@ -157,8 +148,7 @@ def get_keyed_rust_comments(
         comment_text = match.text()
         name = match["NAME"].text()
 
-        m = re.search(r"@(?P<key>[^: ]+):\s*(?P<value>.*?)\s*$", comment_text)
-        if m:
+        if m := re.search(r"@(?P<key>[^: ]+):\s*(?P<value>.*?)\s*$", comment_text):
             key = m.group("key")
             value = m.group("value")
             if key in items[name]:
@@ -328,7 +318,5 @@ def main() -> None:
             generate_rust_action_skeleton(cpu_data, args)
         case "rust_validate":
             validate_rust_code(cpu_data, args)
-
-
-if __name__ == "__main__":
-    main()
+        case _:
+            raise ValueError(f"Unknown command {args.command}")

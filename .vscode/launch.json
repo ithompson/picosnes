@@ -17,7 +17,15 @@
             "coreConfigs": [
                 {
                     "coreIndex": 0,
-                    "programBinary": "./bootapp/target/thumbv6m-none-eabi/debug/bootapp"
+                    "programBinary": "./bootapp/target/thumbv6m-none-eabi/debug/bootapp",
+                    "rttEnabled": true,
+                    "rttChannelFormats": [
+                        {
+                            "channelNumber": 0,
+                            "dataFormat": "String",
+                            "showTimestamps": true
+                        }
+                    ]
                 }
             ]
         }

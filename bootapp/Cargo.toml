@@ -25,4 +25,11 @@ embassy-rp = { version = "0.7.0", features = [
     "rp2040",
 ] }
 embassy-time = { version = "0.4.0", features = ["defmt-timestamp-uptime-us"] }
+embassy-usb = { version = "0.5.1", features = [
+    "defmt",
+    "max-handler-count-2",
+    "max-interface-count-4",
+] }
 panic-probe = { version = "1.0.0", features = ["print-defmt"] }
+portable-atomic = { version = "1.11.1", features = ["critical-section"] }
+static_cell = "2.1.1"

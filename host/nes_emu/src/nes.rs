@@ -38,7 +38,8 @@ impl<'t> NESSystem<'t> {
             .cpu_bus
             .add_device(0x4000, 0x0, 0x18, Box::new(fake_apu));
 
-        let prg_ram = Box::new(RAMDevice::new(rom.prg_ram_size));
+        //let prg_ram = Box::new(RAMDevice::new(rom.prg_ram_size));
+        let prg_ram = Box::new(RAMDevice::new(0x2000));
         system.cpu_bus.add_device(0x6000, 0x0, 0x1FFF, prg_ram);
 
         // FIXME: temporary assumptions that work for the test ROMs
@@ -55,9 +56,8 @@ impl<'t> NESSystem<'t> {
         // Main emulation loop
         let mut data_bus = 0;
         loop {
-            let bus_op = self.cpu.tick(data_bus);
-            match bus_op {
-                BusAccess::Read(addr) => {
+            match self.cpu.tick(data_bus) {
+                Ok(BusAccess::Read(addr)) => {
                     match self.cpu_bus.bus_read(addr as u32) {
                         ReadResult::Data(value) => data_bus = value,
                         ReadResult::OpenBus => {}
@@ -65,18 +65,23 @@ impl<'t> NESSystem<'t> {
 
                     self.tracer.trace_event(
                         self.cpu.mem_trace_element(),
-                        format_args!("      RD 0x{:04X} => {}", addr, data_bus),
+                        format_args!("      RD 0x{:04X} => 0x{:02X}", addr, data_bus),
                     );
                 }
-                BusAccess::Write(addr, value) => {
+                Ok(BusAccess::Write(addr, value)) => {
                     // Handle write operation
                     data_bus = value;
                     self.cpu_bus.bus_write(addr as u32, value);
 
                     self.tracer.trace_event(
                         self.cpu.mem_trace_element(),
-                        format_args!("      RD 0x{:04X} => {}", addr, data_bus),
+                        format_args!("      WR 0x{:04X} => 0x{:02X}", addr, data_bus),
                     );
+                }
+                Err(e) => {
+                    let pc = self.cpu.get_pc();
+                    println!("CPU ERROR: {} at PC=0x{pc:04X}", e);
+                    break;
                 }
             }
         }

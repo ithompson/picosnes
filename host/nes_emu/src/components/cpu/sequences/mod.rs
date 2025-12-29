@@ -3,7 +3,7 @@ mod sequence_tables;
 
 pub use sequence_tables::*;
 
-use super::Cpu6502;
+use super::{Cpu6502, CpuError};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum MemCycle {
@@ -23,7 +23,7 @@ pub enum MemCycle {
 #[derive(Debug, Copy, Clone)]
 pub struct CpuAction {
     pub trace_name: &'static str,
-    pub action_func: fn(&mut Cpu6502) -> (),
+    pub action_func: fn(&mut Cpu6502) -> Result<(), CpuError>,
 }
 
 pub type CpuCycle = (&'static CpuAction, MemCycle);

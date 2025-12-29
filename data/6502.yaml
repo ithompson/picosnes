@@ -299,8 +299,8 @@ mnemonics:
   ADC:
     description: "Add with carry"
     access_subtype: Read
-    op: "A += {reg}"
-    flags: "NZC = ALU"
+    op: "A += {reg} + C"
+    flags: "NZCV = ALU"
   AND:
     description: "AND (with accumulator)"
     access_subtype: Read
@@ -488,7 +488,7 @@ mnemonics:
   SBC:
     description: "Subtract with carry"
     access_subtype: Read
-    op: "A -= {reg}"
+    op: "A += ~{reg} + C"
     flags: "NZCV = ALU"
   SEC:
     description: "Set carry"

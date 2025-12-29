@@ -5,6 +5,7 @@ action_defs! {
         // @{{ key }}: {{ value }}
         {% endfor %}
         todo!("Action {{ action_name|upper }}");
+        Ok(())
     },
 {% endfor %}
 }

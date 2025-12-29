@@ -1,5 +1,11 @@
 use core::fmt;
-use std::{cell::RefCell, collections::HashMap, fs::File, io::BufWriter, io::Write};
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    fs::File,
+    io::{BufWriter, Write},
+    ops::Deref,
+};
 
 /// Trait for values that can be traced. Used in the register
 /// tracing system to format their output.
@@ -180,12 +186,11 @@ impl Tracer {
         let data = &mut *data;
         let element_data = &data.elements[element.0];
         if let Some(writer) = &mut data.trace_writer {
-            writeln!(
+            let _ = writeln!(
                 writer,
                 "[TRACE][{:<12}] {}",
                 element_data.full_name, message
-            )
-            .ok();
+            );
         } else {
             println!("[TRACE][{:<12}] {}", element_data.full_name, message);
         }
@@ -201,26 +206,62 @@ fn format_trace_name(parent_name: &str, element_name: &str) -> String {
 }
 
 /// A structure modeling a CPU register which emits a trace event when modified.
-#[derive(Debug)]
-pub struct TraceableReg<'t, T: Copy + Default + TraceableValue> {
-    name: String,
+#[derive(Debug, Clone)]
+pub struct TraceableReg<'t, T: TraceableValue> {
     value: T,
-    tracer: &'t Tracer,
-    trace_element: TraceElementId,
+    trace: Option<(&'t Tracer, String, TraceElementId)>,
 }
 
-impl<'t, T: Copy + Default + TraceableValue> TraceableReg<'t, T> {
+impl<'t, T: TraceableValue> TraceableReg<'t, T> {
     /// Create a new traceable register
-    pub fn new(name: &str, tracer: &'t Tracer, trace_parent: TraceElementId) -> Self {
-        let trace_element = tracer.register_element(name, Some(trace_parent));
+    pub fn new(
+        value: T,
+        name: &str,
+        tracer: &'t Tracer,
+        trace_parent: Option<TraceElementId>,
+    ) -> Self {
+        let trace_element = tracer.register_element(name, trace_parent);
         Self {
-            name: name.to_string(),
-            value: T::default(),
-            tracer,
-            trace_element,
+            value,
+            trace: Some((tracer, name.to_string(), trace_element)),
         }
     }
 
+    /// Create a new traceable register with trace fully disabled
+    pub fn new_untraced(value: T) -> Self {
+        Self { value, trace: None }
+    }
+}
+
+impl<'t, T: TraceableValue> From<T> for TraceableReg<'t, T> {
+    fn from(value: T) -> Self {
+        Self::new_untraced(value)
+    }
+}
+
+impl<'t, T: Default + TraceableValue> TraceableReg<'t, T> {
+    /// Create a new traceable register, initialized to its default value
+    pub fn new_default(
+        name: &str,
+        tracer: &'t Tracer,
+        trace_parent: Option<TraceElementId>,
+    ) -> Self {
+        Self::new(T::default(), name, tracer, trace_parent)
+    }
+
+    /// Create a new traceable register, initialized to its default value
+    pub fn new_default_untraced() -> Self {
+        Self::new_untraced(T::default())
+    }
+}
+
+impl<'t, T: Default + TraceableValue> Default for TraceableReg<'t, T> {
+    fn default() -> Self {
+        Self::new_default_untraced()
+    }
+}
+
+impl<'t, T: Copy + TraceableValue> TraceableReg<'t, T> {
     /// Get the current value of the register
     pub fn get(&self) -> T {
         self.value
@@ -229,10 +270,12 @@ impl<'t, T: Copy + Default + TraceableValue> TraceableReg<'t, T> {
     /// Write a new value into the register
     pub fn set(&mut self, value: T) {
         self.value = value;
-        self.tracer.trace_event(
-            self.trace_element,
-            format_args!("      {} = {}", self.name, TraceDisplay(&value)),
-        );
+        if let Some((tracer, name, trace_element)) = &self.trace {
+            tracer.trace_event(
+                *trace_element,
+                format_args!("{} = {}", name, TraceDisplay(&value)),
+            );
+        }
     }
 
     /// Atomically updates the register's value through the given callback
@@ -241,6 +284,21 @@ impl<'t, T: Copy + Default + TraceableValue> TraceableReg<'t, T> {
         self.set(new_value);
     }
 }
+
+impl<'t, T: TraceableValue> Deref for TraceableReg<'t, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
+impl<'t, T: TraceableValue + PartialEq> PartialEq for TraceableReg<'t, T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.value == other.value
+    }
+}
+impl<'t, T: TraceableValue + Eq> Eq for TraceableReg<'t, T> {}
 
 impl TraceableValue for u8 {
     fn fmt_trace(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

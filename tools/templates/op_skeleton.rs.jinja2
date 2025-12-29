@@ -1,6 +1,6 @@
 {% for mnemonic, mnemonic_data in cpu_data.mnemonics.items() %}
     {% if mnemonic_data.op or mnemonic_data.branch_cond %}
-pub fn {{ mnemonic|lower }}(cpu: &mut Cpu6502, val: &mut u8) {
+pub fn {{ mnemonic|lower }}(regs: &mut ArchRegs, val: &mut u8) {
         {% for key, value in op_comments[mnemonic].items() %}
     // @{{ key }}: {{ value }}
         {% endfor %}

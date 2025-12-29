@@ -293,7 +293,7 @@ def main() -> None:
     parser_rust_validate.add_argument(
         "--ops_file",
         type=Path,
-        default=SCRIPT_DIR.parent / "host/nes_emu/src/components/cpu/ops.rs",
+        default=SCRIPT_DIR.parent / "host/nes_emu/src/components/cpu/ops/op_impls.rs",
         help="Path to the Rust ops implementation file",
     )
     parser_rust_validate.add_argument(

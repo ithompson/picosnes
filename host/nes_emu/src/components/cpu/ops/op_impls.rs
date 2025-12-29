@@ -460,6 +460,7 @@ mod tests {
     // Stack ops
     define_op_test!(test_pha(regs) { op: pha, expected_val: *regs.a });
     define_op_test!(test_php(regs) { op: php, expected_val: regs.p.as_stk_u8(false) });
+    define_op_test!(test_pla(regs, val) { op: pla, update_regs: { a: val, p: regs.p.with_nz_from_value(val) } });
     define_op_test!(test_plp(regs, val) { op: plp, update_regs: { p: ArchPSR::from_stk_u8(val) } });
     define_op_test!(test_txs(regs) { op: txs, update_regs: { s: *regs.x } });
     define_op_test!(test_tsx(regs) { op: tsx, update_regs: { x: *regs.s, p: regs.p.with_nz_from_value(*regs.s) } });

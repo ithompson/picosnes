@@ -43,7 +43,7 @@ action_defs! {
     },
     ADVANCE_PC_BY_DAT_STOP_IF_NO_CARRY => |cpu| {
         // @pseudocode: PC.lo signed+= dat, dat = carry, done if no carry
-        let current_pc_lo = (cpu.regs.pc.get() & 0x00FF) as u8;
+        let current_pc_lo = (*cpu.regs.pc & 0x00FF) as u8;
         let (pc_lo, carry) = current_pc_lo.overflowing_add_signed(cpu.internal.dat as i8);
         cpu.regs.pc.update(|pc| (pc & 0xFF00) | (pc_lo as u16));
         if carry {
@@ -59,7 +59,7 @@ action_defs! {
     },
     CARRY_INTO_PC_HI => |cpu| {
         // @pseudocode: PC.hi += dat
-        let mut pc_hi = ((cpu.regs.pc.get() & 0xFF00) >> 8) as u8;
+        let mut pc_hi = ((*cpu.regs.pc & 0xFF00) >> 8) as u8;
         pc_hi = pc_hi.wrapping_add(cpu.internal.dat);
         cpu.regs.pc.update(|pc| (pc & 0x00FF) | ((pc_hi as u16) << 8));
         Ok(())
@@ -72,7 +72,7 @@ action_defs! {
     },
     INVOKE_OP_A => |cpu| {
         // @pseudocode: op(A)
-        let mut val = cpu.regs.a.get();
+        let mut val = *cpu.regs.a;
         (cpu.op_func)(&mut cpu.regs, &mut val);
         cpu.regs.a.set(val);
         Ok(())
@@ -141,7 +141,7 @@ action_defs! {
     SET_TMP_HI_INC_BY_X_RECORD_CARRY => |cpu| {
         // @pseudocode: tmp.hi = rd_val, tmp.lo += X, dat = carry
         cpu.internal.tmp_hi = cpu.internal.rd_val;
-        let (incr, carry) = cpu.internal.tmp_lo.overflowing_add(cpu.regs.x.get());
+        let (incr, carry) = cpu.internal.tmp_lo.overflowing_add(*cpu.regs.x);
         cpu.internal.tmp_lo = incr;
         cpu.internal.dat = if carry { 1 } else { 0 };
         Ok(())
@@ -149,7 +149,7 @@ action_defs! {
     SET_TMP_HI_INC_BY_X_SKIP_IF_NO_CARRY => |cpu| {
         // @pseudocode: tmp.hi = rd_val, tmp.lo += X, skip next if no carry
         cpu.internal.tmp_hi = cpu.internal.rd_val;
-        let (incr, carry) = cpu.internal.tmp_lo.overflowing_add(cpu.regs.x.get());
+        let (incr, carry) = cpu.internal.tmp_lo.overflowing_add(*cpu.regs.x);
         cpu.internal.tmp_lo = incr;
         if !carry {
             cpu.skip_next_cycle();
@@ -159,7 +159,7 @@ action_defs! {
     SET_TMP_HI_INC_BY_Y_RECORD_CARRY => |cpu| {
         // @pseudocode: tmp.hi = rd_val, tmp.lo += Y, dat = carry
         cpu.internal.tmp_hi = cpu.internal.rd_val;
-        let (incr, carry) = cpu.internal.tmp_lo.overflowing_add(cpu.regs.y.get());
+        let (incr, carry) = cpu.internal.tmp_lo.overflowing_add(*cpu.regs.y);
         cpu.internal.tmp_lo = incr;
         cpu.internal.dat = if carry { 1 } else { 0 };
         Ok(())
@@ -167,7 +167,7 @@ action_defs! {
     SET_TMP_HI_INC_BY_Y_SKIP_IF_NO_CARRY => |cpu| {
         // @pseudocode: tmp.hi = rd_val, tmp.lo += Y, skip next if no carry
         cpu.internal.tmp_hi = cpu.internal.rd_val;
-        let (incr, carry) = cpu.internal.tmp_lo.overflowing_add(cpu.regs.y.get());
+        let (incr, carry) = cpu.internal.tmp_lo.overflowing_add(*cpu.regs.y);
         cpu.internal.tmp_lo = incr;
         if !carry {
             cpu.skip_next_cycle();
@@ -177,7 +177,7 @@ action_defs! {
     SET_TMP_FULL_INC_BY_Y_RECORD_CARRY => |cpu| {
         // @pseudocode: tmp.hi = rd_val, tmp.lo = dat + Y, dat = carry
         cpu.internal.tmp_hi = cpu.internal.rd_val;
-        let (incr, carry) = cpu.internal.dat.overflowing_add(cpu.regs.y.get());
+        let (incr, carry) = cpu.internal.dat.overflowing_add(*cpu.regs.y);
         cpu.internal.tmp_lo = incr;
         cpu.internal.dat = if carry { 1 } else { 0 };
         Ok(())
@@ -185,7 +185,7 @@ action_defs! {
     SET_TMP_FULL_INC_BY_Y_SKIP_IF_NO_CARRY => |cpu| {
         // @pseudocode: tmp.hi = rd_val, tmp.lo = dat + Y, skip next if no carry
         cpu.internal.tmp_hi = cpu.internal.rd_val;
-        let (incr, carry) = cpu.internal.dat.overflowing_add(cpu.regs.y.get());
+        let (incr, carry) = cpu.internal.dat.overflowing_add(*cpu.regs.y);
         cpu.internal.tmp_lo = incr;
         if !carry {
             cpu.skip_next_cycle();
@@ -212,12 +212,12 @@ action_defs! {
     },
     INC_TMP_BY_X => |cpu| {
         // @pseudocode: tmp.lo += X
-        cpu.internal.tmp_lo = cpu.internal.tmp_lo.wrapping_add(cpu.regs.x.get());
+        cpu.internal.tmp_lo = cpu.internal.tmp_lo.wrapping_add(*cpu.regs.x);
         Ok(())
     },
     INC_TMP_BY_X_INVOKE_OP_DAT => |cpu| {
         // @pseudocode: tmp.lo += X, op(dat)
-        cpu.internal.tmp_lo = cpu.internal.tmp_lo.wrapping_add(cpu.regs.x.get());
+        cpu.internal.tmp_lo = cpu.internal.tmp_lo.wrapping_add(*cpu.regs.x);
         let mut val = cpu.internal.dat;
         (cpu.op_func)(&mut cpu.regs, &mut val);
         cpu.internal.dat = val;
@@ -225,12 +225,12 @@ action_defs! {
     },
     INC_TMP_BY_Y => |cpu| {
         // @pseudocode: tmp.lo += Y
-        cpu.internal.tmp_lo = cpu.internal.tmp_lo.wrapping_add(cpu.regs.y.get());
+        cpu.internal.tmp_lo = cpu.internal.tmp_lo.wrapping_add(*cpu.regs.y);
         Ok(())
     },
     INC_TMP_BY_Y_INVOKE_OP_DAT => |cpu| {
         // @pseudocode: tmp.lo += Y, op(dat)
-        cpu.internal.tmp_lo = cpu.internal.tmp_lo.wrapping_add(cpu.regs.y.get());
+        cpu.internal.tmp_lo = cpu.internal.tmp_lo.wrapping_add(*cpu.regs.y);
         let mut val = cpu.internal.dat;
         (cpu.op_func)(&mut cpu.regs, &mut val);
         cpu.internal.dat = val;
@@ -238,12 +238,12 @@ action_defs! {
     },
     SAVE_PC_HI => |cpu| {
         // @pseudocode: dat = PC.hi
-        cpu.internal.dat = (cpu.regs.pc.get() >> 8) as u8;
+        cpu.internal.dat = (*cpu.regs.pc >> 8) as u8;
         Ok(())
     },
     SAVE_PC_LO => |cpu| {
         // @pseudocode: dat = PC.lo
-        cpu.internal.dat = (cpu.regs.pc.get() & 0xFF) as u8;
+        cpu.internal.dat = (*cpu.regs.pc & 0xFF) as u8;
         Ok(())
     },
     SAVE_RD_VAL => |cpu| {
@@ -253,12 +253,12 @@ action_defs! {
     },
     SAVE_P => |cpu| {
         // @pseudocode: dat = P
-        cpu.internal.dat = cpu.regs.p.get().as_stk_u8(false);
+        cpu.internal.dat = cpu.regs.p.as_stk_u8(false);
         Ok(())
     },
     SAVE_P_BRK => |cpu| {
         // @pseudocode: dat = P+B
-        cpu.internal.dat = cpu.regs.p.get().as_stk_u8(true);
+        cpu.internal.dat = cpu.regs.p.as_stk_u8(true);
         Ok(())
     },
     SAVE_RD_VAL_STOP_IF_NO_BRANCH => |cpu| {

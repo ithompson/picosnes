@@ -247,7 +247,7 @@ impl<'a> Cpu6502<'a> {
     }
 
     pub fn get_pc(&self) -> u16 {
-        self.regs.pc.get()
+        *self.regs.pc
     }
 
     pub fn tick(&mut self, data_bus: u8) -> Result<BusAccess, CpuError> {
@@ -269,9 +269,9 @@ impl<'a> Cpu6502<'a> {
         match mem_cycle {
             MemCycle::IncReadPC => {
                 self.regs.pc.update(|pc| pc.wrapping_add(1));
-                Ok(BusAccess::Read(self.regs.pc.get()))
+                Ok(BusAccess::Read(*self.regs.pc))
             }
-            MemCycle::ReadPC => Ok(BusAccess::Read(self.regs.pc.get())),
+            MemCycle::ReadPC => Ok(BusAccess::Read(*self.regs.pc)),
             MemCycle::IncReadTmp => {
                 self.regs.pc.update(|pc| pc.wrapping_add(1));
                 Ok(BusAccess::Read(
@@ -294,22 +294,22 @@ impl<'a> Cpu6502<'a> {
             )),
             MemCycle::IncReadStk => {
                 self.regs.pc.update(|pc| pc.wrapping_add(1));
-                Ok(BusAccess::Read(0x0100 | (self.regs.s.get() as u16)))
+                Ok(BusAccess::Read(0x0100 | (*self.regs.s as u16)))
             }
-            MemCycle::ReadStk => Ok(BusAccess::Read(0x0100 | (self.regs.s.get() as u16))),
+            MemCycle::ReadStk => Ok(BusAccess::Read(0x0100 | (*self.regs.s as u16))),
             MemCycle::IncPushStk => {
                 self.regs.pc.update(|pc| pc.wrapping_add(1));
-                let sp = self.regs.s.get();
+                let sp = *self.regs.s;
                 self.regs.s.set(sp.wrapping_sub(1));
                 Ok(BusAccess::Write(0x0100 | (sp as u16), self.internal.dat))
             }
             MemCycle::PushStk => {
-                let sp = self.regs.s.get();
+                let sp = *self.regs.s;
                 self.regs.s.set(sp.wrapping_sub(1));
                 Ok(BusAccess::Write(0x0100 | (sp as u16), self.internal.dat))
             }
             MemCycle::PopStk => {
-                let sp = self.regs.s.get().wrapping_add(1);
+                let sp = self.regs.s.wrapping_add(1);
                 self.regs.s.set(sp);
                 Ok(BusAccess::Read(0x0100 | (sp as u16)))
             }
@@ -325,16 +325,14 @@ impl<'a> Cpu6502<'a> {
         if self.nmi_pending {
             self.nmi_pending = false;
             self.sequence = sequences::NMI_SEQUENCE;
-        } else if self.irq_signaled && !self.regs.p.get().i {
+        } else if self.irq_signaled && !self.regs.p.i {
             self.sequence = sequences::IRQ_SEQUENCE;
         } else if let Some(opdesc) = &OPCODE_TABLE[opcode as usize] {
             self.tracer.trace_event(
                 self.instr_trace_element,
                 format_args!(
                     "0x{:04X} 0x{:02X} {}",
-                    self.regs.pc.get(),
-                    opdesc.code,
-                    opdesc.name
+                    *self.regs.pc, opdesc.code, opdesc.name
                 ),
             );
             self.sequence = opdesc.sequence;

@@ -5,10 +5,10 @@ pub fn nop(_regs: &mut ArchRegs, _val: &mut u8) {
 }
 
 fn alu_addsub(regs: &mut ArchRegs, val: u8) {
-    let a = regs.a.get();
-    let carry_in = if regs.p.get().c { 1 } else { 0 };
+    let a = *regs.a;
+    let carry_in = regs.p.c as u16;
     let wide_result = (a as u16).wrapping_add(val as u16).wrapping_add(carry_in);
-    let result = (wide_result & 0xFF) as u8;
+    let result = wide_result as u8;
     let carry_out = wide_result > 0xFF;
     let overflow = (result ^ a) & (result ^ val) >= 0x80;
 
@@ -26,7 +26,7 @@ pub fn and(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: A &= {reg}
     // @flags: NZ = ALU
     regs.a.update(|a| a & *val);
-    regs.p.update(|p| p.with_nz_from_value(regs.a.get()));
+    regs.p.update(|p| p.with_nz_from_value(*regs.a));
 }
 pub fn asl(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: {reg} <<= 1
@@ -40,7 +40,7 @@ pub fn bit(regs: &mut ArchRegs, val: &mut u8) {
     // @flags: Z = ALU, N = M7, V = M6
     let m7 = *val & 0x80 != 0;
     let m6 = *val & 0x40 != 0;
-    let z = regs.a.get() & *val == 0;
+    let z = *regs.a & *val == 0;
     regs.p.update(|p| p.with_nzv(m7, z, m6));
 }
 pub fn clc(regs: &mut ArchRegs, _val: &mut u8) {
@@ -62,19 +62,19 @@ pub fn clv(regs: &mut ArchRegs, _val: &mut u8) {
 pub fn cmp(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: A - {reg}
     // @flags: NZC = ALU
-    let (result, carry) = regs.a.get().overflowing_sub(*val);
+    let (result, carry) = regs.a.overflowing_sub(*val);
     regs.p.update(|p| p.with_nzc_from_value(result, !carry));
 }
 pub fn cpx(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: X - {reg}
     // @flags: NZC = ALU
-    let (result, carry) = regs.x.get().overflowing_sub(*val);
+    let (result, carry) = regs.x.overflowing_sub(*val);
     regs.p.update(|p| p.with_nzc_from_value(result, !carry));
 }
 pub fn cpy(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: Y - {reg}
     // @flags: NZC = ALU
-    let (result, carry) = regs.y.get().overflowing_sub(*val);
+    let (result, carry) = regs.y.overflowing_sub(*val);
     regs.p.update(|p| p.with_nzc_from_value(result, !carry));
 }
 pub fn dec(regs: &mut ArchRegs, val: &mut u8) {
@@ -87,19 +87,19 @@ pub fn dex(regs: &mut ArchRegs, _val: &mut u8) {
     // @pseudocode: X -= 1
     // @flags: NZ = ALU
     regs.x.update(|x| x.wrapping_sub(1));
-    regs.p.update(|p| p.with_nz_from_value(regs.x.get()));
+    regs.p.update(|p| p.with_nz_from_value(*regs.x));
 }
 pub fn dey(regs: &mut ArchRegs, _val: &mut u8) {
     // @pseudocode: Y -= 1
     // @flags: NZ = ALU
     regs.y.update(|y| y.wrapping_sub(1));
-    regs.p.update(|p| p.with_nz_from_value(regs.y.get()));
+    regs.p.update(|p| p.with_nz_from_value(*regs.y));
 }
 pub fn eor(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: A ^= {reg}
     // @flags: NZ = ALU
     regs.a.update(|a| a ^ *val);
-    regs.p.update(|p| p.with_nz_from_value(regs.a.get()));
+    regs.p.update(|p| p.with_nz_from_value(*regs.a));
 }
 pub fn inc(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: {reg} += 1
@@ -111,13 +111,13 @@ pub fn inx(regs: &mut ArchRegs, _val: &mut u8) {
     // @pseudocode: X += 1
     // @flags: NZ = ALU
     regs.x.update(|x| x.wrapping_add(1));
-    regs.p.update(|p| p.with_nz_from_value(regs.x.get()));
+    regs.p.update(|p| p.with_nz_from_value(*regs.x));
 }
 pub fn iny(regs: &mut ArchRegs, _val: &mut u8) {
     // @pseudocode: Y += 1
     // @flags: NZ = ALU
     regs.y.update(|y| y.wrapping_add(1));
-    regs.p.update(|p| p.with_nz_from_value(regs.y.get()));
+    regs.p.update(|p| p.with_nz_from_value(*regs.y));
 }
 pub fn lda(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: A = {reg}
@@ -148,15 +148,15 @@ pub fn ora(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: A |= {reg}
     // @flags: NZ = ALU
     regs.a.update(|a| a | *val);
-    regs.p.update(|p| p.with_nz_from_value(regs.a.get()));
+    regs.p.update(|p| p.with_nz_from_value(*regs.a));
 }
 pub fn pha(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: {reg} = A
-    *val = regs.a.get();
+    *val = *regs.a;
 }
 pub fn php(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: {reg} = P
-    *val = regs.p.get().as_stk_u8(false);
+    *val = regs.p.as_stk_u8(false);
 }
 pub fn pla(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: A = {reg}
@@ -172,7 +172,7 @@ pub fn rol(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: {reg} ROL= 1
     // @flags: NZ = ALU, C = {reg}7
     let carry = *val & 0x80;
-    *val = (*val << 1) | (if regs.p.c { 1 } else { 0 });
+    *val = (*val << 1) | (regs.p.c as u8);
     regs.p.update(|p| p.with_nzc_from_value(*val, carry != 0));
 }
 pub fn ror(regs: &mut ArchRegs, val: &mut u8) {
@@ -214,76 +214,76 @@ pub fn sty(regs: &mut ArchRegs, val: &mut u8) {
 pub fn tax(regs: &mut ArchRegs, _val: &mut u8) {
     // @pseudocode: X = A
     // @flags: NZ = ALU
-    regs.x.set(regs.a.get());
-    regs.p.update(|p| p.with_nz_from_value(regs.x.get()));
+    regs.x.set(*regs.a);
+    regs.p.update(|p| p.with_nz_from_value(*regs.x));
 }
 pub fn tay(regs: &mut ArchRegs, _val: &mut u8) {
     // @pseudocode: Y = A
     // @flags: NZ = ALU
-    regs.y.set(regs.a.get());
-    regs.p.update(|p| p.with_nz_from_value(regs.y.get()));
+    regs.y.set(*regs.a);
+    regs.p.update(|p| p.with_nz_from_value(*regs.y));
 }
 pub fn tsx(regs: &mut ArchRegs, _val: &mut u8) {
     // @pseudocode: X = S
     // @flags: NZ = ALU
-    regs.x.set(regs.s.get());
-    regs.p.update(|p| p.with_nz_from_value(regs.x.get()));
+    regs.x.set(*regs.s);
+    regs.p.update(|p| p.with_nz_from_value(*regs.x));
 }
 pub fn txa(regs: &mut ArchRegs, _val: &mut u8) {
     // @pseudocode: A = X
     // @flags: NZ = ALU
-    regs.a.set(regs.x.get());
-    regs.p.update(|p| p.with_nz_from_value(regs.a.get()));
+    regs.a.set(*regs.x);
+    regs.p.update(|p| p.with_nz_from_value(*regs.a));
 }
 pub fn txs(regs: &mut ArchRegs, _val: &mut u8) {
     // @pseudocode: S = X
-    regs.s.set(regs.x.get());
+    regs.s.set(*regs.x);
 }
 pub fn tya(regs: &mut ArchRegs, _val: &mut u8) {
     // @pseudocode: A = Y
     // @flags: NZ = ALU
-    regs.a.set(regs.y.get());
-    regs.p.update(|p| p.with_nz_from_value(regs.a.get()));
+    regs.a.set(*regs.y);
+    regs.p.update(|p| p.with_nz_from_value(*regs.a));
 }
 
 pub fn bcc(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: {reg} = P.C == 0
-    *val = if !regs.p.get().c { 1 } else { 0 };
+    *val = !regs.p.c as u8;
 }
 
 pub fn bcs(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: {reg} = P.C == 1
-    *val = if regs.p.get().c { 1 } else { 0 };
+    *val = regs.p.c as u8;
 }
 
 pub fn beq(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: {reg} = P.Z == 1
-    *val = if regs.p.get().z { 1 } else { 0 };
+    *val = regs.p.z as u8;
 }
 
 pub fn bmi(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: {reg} = P.N == 1
-    *val = if regs.p.get().n { 1 } else { 0 };
+    *val = regs.p.n as u8;
 }
 
 pub fn bne(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: {reg} = P.Z == 0
-    *val = if !regs.p.get().z { 1 } else { 0 };
+    *val = !regs.p.z as u8;
 }
 
 pub fn bpl(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: {reg} = P.N == 0
-    *val = if !regs.p.get().n { 1 } else { 0 };
+    *val = !regs.p.n as u8;
 }
 
 pub fn bvc(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: {reg} = P.V == 0
-    *val = if !regs.p.get().v { 1 } else { 0 };
+    *val = !regs.p.v as u8;
 }
 
 pub fn bvs(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: {reg} = P.V == 1
-    *val = if regs.p.get().v { 1 } else { 0 };
+    *val = regs.p.v as u8;
 }
 
 #[cfg(test)]

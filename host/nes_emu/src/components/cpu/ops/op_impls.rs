@@ -156,7 +156,7 @@ pub fn pha(regs: &mut ArchRegs, val: &mut u8) {
 }
 pub fn php(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: {reg} = P
-    *val = regs.p.as_stk_u8(false);
+    *val = regs.p.as_stk_u8(true);
 }
 pub fn pla(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: A = {reg}
@@ -459,7 +459,7 @@ mod tests {
 
     // Stack ops
     define_op_test!(test_pha(regs) { op: pha, expected_val: *regs.a });
-    define_op_test!(test_php(regs) { op: php, expected_val: regs.p.as_stk_u8(false) });
+    define_op_test!(test_php(regs) { op: php, expected_val: regs.p.as_stk_u8(true) });
     define_op_test!(test_pla(regs, val) { op: pla, update_regs: { a: val, p: regs.p.with_nz_from_value(val) } });
     define_op_test!(test_plp(regs, val) { op: plp, update_regs: { p: ArchPSR::from_stk_u8(val) } });
     define_op_test!(test_txs(regs) { op: txs, update_regs: { s: *regs.x } });

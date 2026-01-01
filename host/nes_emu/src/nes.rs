@@ -1,6 +1,9 @@
 use crate::components::{
-    BusDevice, GenericRouter, MirroringWrapper, RAMDevice, ROMDevice, ReadResult,
+    BusDevice, EmuResult, ReadResult,
+    bus::{GenericRouter, MirroringWrapper},
     cpu::{BusAccess, Cpu6502},
+    debug::TestROMMonitor,
+    mem::{RAMDevice, ROMDevice},
     tracer::Tracer,
 };
 use crate::nes_file::NesFile;
@@ -8,6 +11,7 @@ use crate::nes_file::NesFile;
 pub struct NESSystem<'t> {
     cpu: Cpu6502<'t>,
     cpu_bus: GenericRouter,
+    data_bus_state: u8,
     tracer: &'t Tracer,
 }
 
@@ -16,6 +20,7 @@ impl<'t> NESSystem<'t> {
         let mut system = NESSystem {
             cpu: Cpu6502::new(tracer),
             cpu_bus: GenericRouter::new(),
+            data_bus_state: 0,
             tracer,
         };
         // Internal RAM: 0x0000 - 0x1FFF, mirroring every 0x0800 bytes
@@ -39,7 +44,7 @@ impl<'t> NESSystem<'t> {
             .add_device(0x4000, 0x0, 0x18, Box::new(fake_apu));
 
         //let prg_ram = Box::new(RAMDevice::new(rom.prg_ram_size));
-        let prg_ram = Box::new(RAMDevice::new(0x2000));
+        let prg_ram = Box::new(TestROMMonitor::new(RAMDevice::new(0x2000), 0x0));
         system.cpu_bus.add_device(0x6000, 0x0, 0x1FFF, prg_ram);
 
         // FIXME: temporary assumptions that work for the test ROMs
@@ -52,38 +57,49 @@ impl<'t> NESSystem<'t> {
         system
     }
 
-    pub fn run(&mut self) {
-        // Main emulation loop
-        let mut data_bus = 0;
-        loop {
-            match self.cpu.tick(data_bus) {
-                Ok(BusAccess::Read(addr)) => {
-                    match self.cpu_bus.bus_read(addr as u32) {
-                        ReadResult::Data(value) => data_bus = value,
-                        ReadResult::OpenBus => {}
-                    }
+    fn run_tick(&mut self) -> EmuResult<()> {
+        match self.cpu.tick(self.data_bus_state)? {
+            BusAccess::Read(addr) => {
+                match self.cpu_bus.bus_read(addr as u32)? {
+                    ReadResult::Data(value) => self.data_bus_state = value,
+                    ReadResult::OpenBus => {}
+                }
 
-                    self.tracer.trace_event(
-                        self.cpu.mem_trace_element(),
-                        format_args!("      RD 0x{:04X} => 0x{:02X}", addr, data_bus),
-                    );
-                }
-                Ok(BusAccess::Write(addr, value)) => {
-                    // Handle write operation
-                    data_bus = value;
-                    self.cpu_bus.bus_write(addr as u32, value);
+                self.tracer.trace_event(
+                    self.cpu.mem_trace_element(),
+                    format_args!("      RD 0x{:04X} => 0x{:02X}", addr, self.data_bus_state),
+                );
+            }
+            BusAccess::Write(addr, value) => {
+                // Handle write operation
+                self.data_bus_state = value;
+                self.cpu_bus.bus_write(addr as u32, value)?;
 
-                    self.tracer.trace_event(
-                        self.cpu.mem_trace_element(),
-                        format_args!("      WR 0x{:04X} => 0x{:02X}", addr, data_bus),
-                    );
-                }
-                Err(e) => {
-                    let pc = self.cpu.get_pc();
-                    println!("CPU ERROR: {} at PC=0x{pc:04X}", e);
-                    break;
-                }
+                self.tracer.trace_event(
+                    self.cpu.mem_trace_element(),
+                    format_args!("      WR 0x{:04X} => 0x{:02X}", addr, self.data_bus_state),
+                );
             }
         }
+        Ok(())
+    }
+
+    pub fn run_for(&mut self, num_ticks: usize) -> EmuResult<()> {
+        self.cpu_bus.start_of_simulation()?;
+        for _ in 0..num_ticks {
+            self.run_tick()?;
+        }
+        Ok(())
+    }
+
+    pub fn run(&mut self) {
+        match self.run_for(100000000) {
+            Ok(()) => {}
+            Err(e) => {
+                let pc = self.cpu.get_pc();
+                println!("ERROR: {} at PC=0x{pc:04X}", e);
+            }
+        }
+        self.cpu_bus.end_of_simulation();
     }
 }

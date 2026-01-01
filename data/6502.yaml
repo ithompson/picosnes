@@ -828,7 +828,7 @@ instructions:
     mnemonic: LDY
     access_mode: IMM
   0xA1:
-    mnemonic: LDY
+    mnemonic: LDA
     access_mode: INDX
   0xA2:
     mnemonic: LDX

@@ -94,7 +94,7 @@ pub static OPCODE_TABLE: [Option<Opcode>; 256] = {
     opcode!(ops, 0x9A, "TXS", IMP_NOMEM_SEQUENCE, txs);
     opcode!(ops, 0x9D, "STA $addr,X", ABSX_WRITE_SEQUENCE, sta);
     opcode!(ops, 0xA0, "LDY #imm", IMM_READ_SEQUENCE, ldy);
-    opcode!(ops, 0xA1, "LDY ($zp,X)", INDX_READ_SEQUENCE, ldy);
+    opcode!(ops, 0xA1, "LDA ($zp,X)", INDX_READ_SEQUENCE, lda);
     opcode!(ops, 0xA2, "LDX #imm", IMM_READ_SEQUENCE, ldx);
     opcode!(ops, 0xA4, "LDY $zp", ZP_READ_SEQUENCE, ldy);
     opcode!(ops, 0xA5, "LDA $zp", ZP_READ_SEQUENCE, lda);

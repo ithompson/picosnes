@@ -2,29 +2,23 @@ mod opcodes;
 mod ops;
 mod sequences;
 
-use std::fmt;
+use std::fmt::{self, Display};
 
 use sequences::{CpuCycle, MemCycle};
-use thiserror::Error;
 
 use super::tracer::{TraceElementId, TraceableReg, TraceableValue, Tracer};
+use super::{EmuError, EmuResult};
 use opcodes::OPCODE_TABLE;
 use ops::OpFunc;
 
-#[derive(Error, Debug)]
-pub enum CpuError {
-    #[error("Illegal opcode: 0x{0:02X}")]
-    IllegalOpcode(u8),
-}
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
-struct ArchPSR {
-    n: bool,
-    z: bool,
-    c: bool,
-    v: bool,
-    i: bool,
-    d: bool,
+pub struct ArchPSR {
+    pub n: bool,
+    pub z: bool,
+    pub c: bool,
+    pub v: bool,
+    pub i: bool,
+    pub d: bool,
 }
 
 impl ArchPSR {
@@ -126,8 +120,8 @@ impl ArchPSR {
     }
 }
 
-impl TraceableValue for ArchPSR {
-    fn fmt_trace(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Display for ArchPSR {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "{}{}1.{}{}{}{}",
@@ -141,14 +135,20 @@ impl TraceableValue for ArchPSR {
     }
 }
 
+impl TraceableValue for ArchPSR {
+    fn fmt_trace(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct ArchRegs<'t> {
-    a: TraceableReg<'t, u8>,
-    x: TraceableReg<'t, u8>,
-    y: TraceableReg<'t, u8>,
-    p: TraceableReg<'t, ArchPSR>,
-    s: TraceableReg<'t, u8>,
-    pc: TraceableReg<'t, u16>,
+pub struct ArchRegs<'t> {
+    pub a: TraceableReg<'t, u8>,
+    pub x: TraceableReg<'t, u8>,
+    pub y: TraceableReg<'t, u8>,
+    pub p: TraceableReg<'t, ArchPSR>,
+    pub s: TraceableReg<'t, u8>,
+    pub pc: TraceableReg<'t, u16>,
 }
 
 impl<'t> ArchRegs<'t> {
@@ -246,11 +246,11 @@ impl<'a> Cpu6502<'a> {
         self.nmi_pending = false;
     }
 
-    pub fn get_pc(&self) -> u16 {
-        *self.regs.pc
+    pub fn get_regs(&self) -> &ArchRegs<'a> {
+        &self.regs
     }
 
-    pub fn tick(&mut self, data_bus: u8) -> Result<BusAccess, CpuError> {
+    pub fn tick(&mut self, data_bus: u8) -> EmuResult<BusAccess> {
         self.internal.rd_val = data_bus;
 
         if self.sequence.is_empty() {
@@ -316,7 +316,7 @@ impl<'a> Cpu6502<'a> {
         }
     }
 
-    fn dispatch(&mut self, opcode: u8) -> Result<(), CpuError> {
+    fn dispatch(&mut self, opcode: u8) -> EmuResult<()> {
         // FIXME: Strictly speaking this is the wrong way to do IRQ/NMI handling
         // A proper implementation would be to force a BRK opcode, and then the
         // BRK sequence would have the IRQ/NMI checks on the cycle that pushes P
@@ -338,7 +338,7 @@ impl<'a> Cpu6502<'a> {
             self.sequence = opdesc.sequence;
             self.op_func = opdesc.op_func;
         } else {
-            return Err(CpuError::IllegalOpcode(opcode));
+            return Err(EmuError::IllegalCpuOpcode(opcode));
         }
 
         Ok(())

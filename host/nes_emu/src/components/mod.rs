@@ -10,10 +10,12 @@ pub use bus::{BusDevice, ReadResult};
 
 #[derive(Debug, Error)]
 pub enum EmuError {
-    #[error("CPU error: {0}")]
-    Cpu(#[from] cpu::CpuError),
     #[error("Normal emulation stop")]
     StopEmulation,
+    #[error("Cycle limit reached")]
+    CycleLimitReached,
+    #[error("Illegal CPU opcode: 0x{0:02X}")]
+    IllegalCpuOpcode(u8),
     #[error("Test ROM reported failure with code {0}")]
     TestROMFailure(u8),
 }

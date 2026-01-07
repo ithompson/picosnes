@@ -6,7 +6,11 @@ use std::{fs::File, path::PathBuf};
 
 use clap::Parser;
 
-use crate::{components::tracer::Tracer, nes::NESSystem, nes_file::NesFile};
+use crate::{
+    components::{EmuError, tracer::Tracer},
+    nes::NESSystem,
+    nes_file::NesFile,
+};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -18,6 +22,9 @@ struct Args {
 
     #[arg(long)]
     trace_file: Option<PathBuf>,
+
+    #[arg(long, short, help = "Number of CPU cycles to run before exiting")]
+    cycles: Option<u64>,
 }
 
 fn main() {
@@ -33,5 +40,32 @@ fn main() {
     let tracer = Tracer::new(&args.trace, trace_file);
     let mut nes = NESSystem::new(&tracer, rom);
 
-    nes.run();
+    let run_result = (|| {
+        nes.start_simulation()?;
+        nes.run(args.cycles)
+    })();
+
+    nes.end_simulation();
+
+    match run_result {
+        Ok(_) => {}
+        Err(e) => match e {
+            EmuError::StopEmulation => {}
+            EmuError::CycleLimitReached => {
+                println!("Cycle limit exceeded");
+            }
+            _ => {
+                eprintln!("Emulation error: {}", e);
+
+                eprintln!("Register dump:");
+                let regs = nes.get_regs();
+                eprintln!("A:  0x{:02X}   S: 0x{:02X}", *regs.a, *regs.s);
+                eprintln!("X:  0x{:02X}   Y: 0x{:02X}", *regs.x, *regs.y);
+                eprintln!("P:  {}", *regs.p);
+                eprintln!("PC: 0x{:04X}", *regs.pc);
+            }
+        },
+    }
+
+    println!("Total CPU cycles executed: {}", nes.get_tick_count());
 }

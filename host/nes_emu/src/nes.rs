@@ -1,7 +1,7 @@
 use crate::components::{
-    BusDevice, EmuResult, ReadResult,
+    BusDevice, EmuError, EmuResult, ReadResult,
     bus::{GenericRouter, MirroringWrapper},
-    cpu::{BusAccess, Cpu6502},
+    cpu::{ArchRegs, BusAccess, Cpu6502},
     debug::TestROMMonitor,
     mem::{RAMDevice, ROMDevice},
     tracer::Tracer,
@@ -13,6 +13,7 @@ pub struct NESSystem<'t> {
     cpu_bus: GenericRouter,
     data_bus_state: u8,
     tracer: &'t Tracer,
+    tick_count: u64,
 }
 
 impl<'t> NESSystem<'t> {
@@ -22,6 +23,7 @@ impl<'t> NESSystem<'t> {
             cpu_bus: GenericRouter::new(),
             data_bus_state: 0,
             tracer,
+            tick_count: 0,
         };
         // Internal RAM: 0x0000 - 0x1FFF, mirroring every 0x0800 bytes
         let internal_ram = RAMDevice::new(0x800);
@@ -57,6 +59,15 @@ impl<'t> NESSystem<'t> {
         system
     }
 
+    pub fn start_simulation(&mut self) -> EmuResult<()> {
+        self.tick_count = 0;
+        self.cpu_bus.start_of_simulation()
+    }
+
+    pub fn end_simulation(&mut self) {
+        self.cpu_bus.end_of_simulation();
+    }
+
     fn run_tick(&mut self) -> EmuResult<()> {
         match self.cpu.tick(self.data_bus_state)? {
             BusAccess::Read(addr) => {
@@ -81,25 +92,26 @@ impl<'t> NESSystem<'t> {
                 );
             }
         }
+        self.tick_count += 1;
         Ok(())
     }
 
-    pub fn run_for(&mut self, num_ticks: usize) -> EmuResult<()> {
-        self.cpu_bus.start_of_simulation()?;
-        for _ in 0..num_ticks {
+    pub fn get_regs(&self) -> &ArchRegs<'t> {
+        self.cpu.get_regs()
+    }
+
+    pub fn get_tick_count(&self) -> u64 {
+        self.tick_count
+    }
+
+    pub fn run(&mut self, tick_limit: Option<u64>) -> EmuResult<()> {
+        loop {
+            if let Some(limit) = tick_limit {
+                if self.tick_count >= limit {
+                    return Err(EmuError::CycleLimitReached);
+                }
+            }
             self.run_tick()?;
         }
-        Ok(())
-    }
-
-    pub fn run(&mut self) {
-        match self.run_for(100000000) {
-            Ok(()) => {}
-            Err(e) => {
-                let pc = self.cpu.get_pc();
-                println!("ERROR: {} at PC=0x{pc:04X}", e);
-            }
-        }
-        self.cpu_bus.end_of_simulation();
     }
 }

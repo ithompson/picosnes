@@ -40,9 +40,11 @@ impl<T: BusDevice> BusDevice for TestROMMonitor<T> {
 
         // Detect writes to the test signature range and update the current signature
         let signature_base = self.test_mem_base + TEST_SIG_OFFSET;
-        if addr >= signature_base && addr < signature_base + SIGNATURE_SIZE as u32 {
-            let sig_index = (addr - signature_base) as usize;
-            self.current_test_signature[sig_index] = data;
+        if let Some(slot) = self
+            .current_test_signature
+            .get_mut(addr.wrapping_sub(signature_base) as usize)
+        {
+            *slot = data;
         }
 
         // Detect writes to the test status flag
@@ -51,13 +53,17 @@ impl<T: BusDevice> BusDevice for TestROMMonitor<T> {
                 0x80 => {
                     // Test in progress
                 }
+                0x81 => {
+                    // Soft reset requested
+                    todo!("Soft reset requested");
+                }
                 0x00 => {
                     // Test completed successfully
                     return Err(EmuError::StopEmulation);
                 }
-                _ => {
+                fail_code => {
                     // Test failed with error code
-                    return Err(EmuError::TestROMFailure(data));
+                    return Err(EmuError::TestROMFailure(fail_code));
                 }
             }
         }

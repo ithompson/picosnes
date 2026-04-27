@@ -47,14 +47,14 @@ impl<'t> NESSystem<'t> {
 
         //let prg_ram = Box::new(RAMDevice::new(rom.prg_ram_size));
         let prg_ram = Box::new(TestROMMonitor::new(RAMDevice::new(0x2000), 0x0));
-        system.cpu_bus.add_device(0x6000, 0x0, 0x1FFF, prg_ram);
+        system.cpu_bus.add_device(0x6000, 0x0, 0x2000, prg_ram);
 
         // FIXME: temporary assumptions that work for the test ROMs
         // Mapper 1, PRG-ROM small enough that no bank switching is needed
         assert!(rom.mapper.id == 0);
         assert!(rom.prg_rom.len() == 0x8000);
         let prg_rom = Box::new(ROMDevice::new(rom.prg_rom));
-        system.cpu_bus.add_device(0x8000, 0x0000, 0x7FFF, prg_rom);
+        system.cpu_bus.add_device(0x8000, 0x0000, 0x8000, prg_rom);
 
         system
     }

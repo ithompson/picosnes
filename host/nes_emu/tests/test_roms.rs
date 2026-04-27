@@ -81,7 +81,6 @@ fn test_single_10_stack() {
 }
 
 #[test]
-#[ignore = "Unimplemented illegal instructions"]
 fn test_single_11_special() {
-    run_test_rom("nes_instr_test/rom_singles/11-special.nes", 2_000_000);
+    run_test_rom("nes_instr_test/rom_singles/11-special.nes", 1_139_000);
 }

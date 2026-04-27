@@ -64,141 +64,141 @@ actions:
   set_nmi_vec: "tmp.hi = 0xFF, tmp.lo = 0xFA, P.I = 1"
 
 dispatch_seq:
-  - [dispatch, inc_read_pc]
+  - [ dispatch, inc_read_pc ]
 
 reset_seq:
-  - [dec_s, read_stk]
-  - [dec_s, read_stk]
-  - [dec_s, read_stk]
-  - [set_reset_vec, read_tmp]
-  - [set_pc_lo_inc_tmp, read_tmp]
-  - [set_pc_hi, read_pc]
+  - [ dec_s, read_stk ]
+  - [ dec_s, read_stk ]
+  - [ dec_s, read_stk ]
+  - [ set_reset_vec, read_tmp ]
+  - [ set_pc_lo_inc_tmp, read_tmp ]
+  - [ set_pc_hi, read_pc ]
 
 irq_seq:
-  - [save_pc_hi, inc_push_stk]
-  - [save_pc_lo, push_stk]
-  - [save_p, push_stk]
-  - [set_irq_vec, read_tmp]
-  - [set_pc_lo_inc_tmp, read_tmp]
-  - [set_pc_hi, read_pc]
+  - [ save_pc_hi, inc_push_stk ]
+  - [ save_pc_lo, push_stk ]
+  - [ save_p, push_stk ]
+  - [ set_irq_vec, read_tmp ]
+  - [ set_pc_lo_inc_tmp, read_tmp ]
+  - [ set_pc_hi, read_pc ]
 
 nmi_seq:
-  - [save_pc_hi, inc_push_stk]
-  - [save_pc_lo, push_stk]
-  - [save_p, push_stk]
-  - [set_nmi_vec, read_tmp]
-  - [set_pc_lo_inc_tmp, read_tmp]
-  - [set_pc_hi, read_pc]
+  - [ save_pc_hi, inc_push_stk ]
+  - [ save_pc_lo, push_stk ]
+  - [ save_p, push_stk ]
+  - [ set_nmi_vec, read_tmp ]
+  - [ set_pc_lo_inc_tmp, read_tmp ]
+  - [ set_pc_hi, read_pc ]
 
 access_modes:
   ABS:
     inst_arg: $addr
     sequences:
       JMP:
-        - [set_tmp_lo, inc_read_pc]
-        - [set_pc_full, read_pc]
+        - [ set_tmp_lo, inc_read_pc ]
+        - [ set_pc_full, read_pc ]
       JSR:
-        - [set_tmp_lo, inc_read_stk]
-        - [save_pc_hi, push_stk]
-        - [save_pc_lo, push_stk]
-        - [nop, read_pc]
-        - [set_pc_full, read_pc]
+        - [ set_tmp_lo, inc_read_stk ]
+        - [ save_pc_hi, push_stk ]
+        - [ save_pc_lo, push_stk ]
+        - [ nop, read_pc ]
+        - [ set_pc_full, read_pc ]
       RMW:
-        - [set_tmp_lo, inc_read_pc]
-        - [set_tmp_hi, inc_read_tmp]
-        - [save_rd_val, write_tmp]
-        - [invoke_op_dat, write_tmp]
-        - [nop, read_pc]
+        - [ set_tmp_lo, inc_read_pc ]
+        - [ set_tmp_hi, inc_read_tmp ]
+        - [ save_rd_val, write_tmp ]
+        - [ invoke_op_dat, write_tmp ]
+        - [ nop, read_pc ]
       Read:
-        - [set_tmp_lo, inc_read_pc]
-        - [set_tmp_hi, inc_read_tmp]
-        - [invoke_op_rd_val, read_pc]
+        - [ set_tmp_lo, inc_read_pc ]
+        - [ set_tmp_hi, inc_read_tmp ]
+        - [ invoke_op_rd_val, read_pc ]
       Write:
-        - [set_tmp_lo, inc_read_pc]
-        - [set_tmp_hi_invoke_op_dat, inc_write_tmp]
-        - [nop, read_pc]
+        - [ set_tmp_lo, inc_read_pc ]
+        - [ set_tmp_hi_invoke_op_dat, inc_write_tmp ]
+        - [ nop, read_pc ]
   ABSIND:
     inst_arg: ($addr)
     sequences:
       JMP:
-        - [set_tmp_lo, inc_read_pc]
-        - [set_tmp_hi, inc_read_tmp]
-        - [set_pc_lo_inc_tmp, read_tmp]
-        - [set_pc_hi, read_pc]
+        - [ set_tmp_lo, inc_read_pc ]
+        - [ set_tmp_hi, inc_read_tmp ]
+        - [ set_pc_lo_inc_tmp, read_tmp ]
+        - [ set_pc_hi, read_pc ]
   ABSX:
     inst_arg: $addr,X
     sequences:
       RMW:
-        - [set_tmp_lo, inc_read_pc]
-        - [set_tmp_hi_inc_by_x_record_carry, inc_read_tmp]
-        - [carry_into_tmp_hi, read_tmp]
-        - [save_rd_val, write_tmp]
-        - [invoke_op_dat, write_tmp]
-        - [nop, read_pc]
+        - [ set_tmp_lo, inc_read_pc ]
+        - [ set_tmp_hi_inc_by_x_record_carry, inc_read_tmp ]
+        - [ carry_into_tmp_hi, read_tmp ]
+        - [ save_rd_val, write_tmp ]
+        - [ invoke_op_dat, write_tmp ]
+        - [ nop, read_pc ]
       Read:
-        - [set_tmp_lo, inc_read_pc]
-        - [set_tmp_hi_inc_by_x_skip_if_no_carry, inc_read_tmp]
-        - [inc_tmp_hi, read_tmp]
-        - [invoke_op_rd_val, read_pc]
+        - [ set_tmp_lo, inc_read_pc ]
+        - [ set_tmp_hi_inc_by_x_skip_if_no_carry, inc_read_tmp ]
+        - [ inc_tmp_hi, read_tmp ]
+        - [ invoke_op_rd_val, read_pc ]
       Write:
-        - [set_tmp_lo, inc_read_pc]
-        - [set_tmp_hi_inc_by_x_record_carry, inc_read_pc]
-        - [carry_into_tmp_hi_invoke_op_dat, write_tmp]
-        - [nop, read_pc]
+        - [ set_tmp_lo, inc_read_pc ]
+        - [ set_tmp_hi_inc_by_x_record_carry, inc_read_pc ]
+        - [ carry_into_tmp_hi_invoke_op_dat, write_tmp ]
+        - [ nop, read_pc ]
   ABSY:
     inst_arg: $addr,Y
     sequences:
       Read:
-        - [set_tmp_lo, inc_read_pc]
-        - [set_tmp_hi_inc_by_y_skip_if_no_carry, inc_read_tmp]
-        - [inc_tmp_hi, read_tmp]
-        - [invoke_op_rd_val, read_pc]
+        - [ set_tmp_lo, inc_read_pc ]
+        - [ set_tmp_hi_inc_by_y_skip_if_no_carry, inc_read_tmp ]
+        - [ inc_tmp_hi, read_tmp ]
+        - [ invoke_op_rd_val, read_pc ]
       Write:
-        - [set_tmp_lo, inc_read_pc]
-        - [set_tmp_hi_inc_by_y_record_carry, inc_read_pc]
-        - [carry_into_tmp_hi_invoke_op_dat, write_tmp]
-        - [nop, read_pc]
+        - [ set_tmp_lo, inc_read_pc ]
+        - [ set_tmp_hi_inc_by_y_record_carry, inc_read_pc ]
+        - [ carry_into_tmp_hi_invoke_op_dat, write_tmp ]
+        - [ nop, read_pc ]
   ACC:
     inst_arg: A
     sequences:
       RMW:
-        - [invoke_op_a, read_pc]
+        - [ invoke_op_a, read_pc ]
   IMM:
     inst_arg: "#imm"
     sequences:
       Read:
-        - [invoke_op_rd_val, inc_read_pc]
+        - [ invoke_op_rd_val, inc_read_pc ]
   IMP:
     inst_arg: ""
     sequences:
       BRK:
-        - [save_pc_hi, inc_push_stk]
-        - [save_pc_lo, push_stk]
-        - [save_p_brk, push_stk]
-        - [set_irq_vec, read_tmp]
-        - [set_pc_lo_inc_tmp, read_tmp]
-        - [set_pc_hi, read_pc]
+        - [ save_pc_hi, inc_push_stk ]
+        - [ save_pc_lo, push_stk ]
+        - [ save_p_brk, push_stk ]
+        - [ set_irq_vec, read_tmp ]
+        - [ set_pc_lo_inc_tmp, read_tmp ]
+        - [ set_pc_hi, read_pc ]
       Nomem:
-        - [invoke_op, read_pc]
+        - [ invoke_op, read_pc ]
       Pop:
-        - [nop, read_stk]
-        - [nop, pop_stk]
-        - [invoke_op_rd_val, read_pc]
+        - [ nop, read_stk ]
+        - [ nop, pop_stk ]
+        - [ invoke_op_rd_val, read_pc ]
       Push:
-        - [invoke_op_dat, push_stk]
-        - [nop, read_pc]
+        - [ invoke_op_dat, push_stk ]
+        - [ nop, read_pc ]
       RTI:
-        - [nop, read_stk]
-        - [nop, pop_stk]
-        - [set_p, pop_stk]
-        - [set_pc_lo, pop_stk]
-        - [set_pc_hi, read_pc]
+        - [ nop, read_stk ]
+        - [ nop, pop_stk ]
+        - [ set_p, pop_stk ]
+        - [ set_pc_lo, pop_stk ]
+        - [ set_pc_hi, read_pc ]
       RTS:
-        - [nop, read_stk]
-        - [nop, pop_stk]
-        - [set_pc_lo, pop_stk]
-        - [set_pc_hi, read_pc]
-        - [nop, inc_read_pc]
+        - [ nop, read_stk ]
+        - [ nop, pop_stk ]
+        - [ set_pc_lo, pop_stk ]
+        - [ set_pc_hi, read_pc ]
+        - [ nop, inc_read_pc ]
   INDX:
     inst_arg: ($zp,X)
     sequences:
@@ -211,17 +211,17 @@ access_modes:
       #   - [invoke_op_dat, write_tmp]
       #   - [nop, read_pc]
       Read:
-        - [set_tmp_zp, inc_read_tmp]
-        - [inc_tmp_by_x, read_tmp]
-        - [save_rd_val_inc_tmp, read_tmp]
-        - [set_tmp_full, read_tmp]
-        - [invoke_op_rd_val, read_pc]
+        - [ set_tmp_zp, inc_read_tmp ]
+        - [ inc_tmp_by_x, read_tmp ]
+        - [ save_rd_val_inc_tmp, read_tmp ]
+        - [ set_tmp_full, read_tmp ]
+        - [ invoke_op_rd_val, read_pc ]
       Write:
-        - [set_tmp_zp, inc_read_tmp]
-        - [inc_tmp_by_x, read_tmp]
-        - [save_rd_val_inc_tmp, read_tmp]
-        - [set_tmp_full_invoke_op_dat, write_tmp]
-        - [nop, read_pc]
+        - [ set_tmp_zp, inc_read_tmp ]
+        - [ inc_tmp_by_x, read_tmp ]
+        - [ save_rd_val_inc_tmp, read_tmp ]
+        - [ set_tmp_full_invoke_op_dat, write_tmp ]
+        - [ nop, read_pc ]
   INDY:
     inst_arg: ($zp),Y
     sequences:
@@ -234,66 +234,66 @@ access_modes:
       #   - [invoke_op_dat, write_tmp]
       #   - [nop, read_pc]
       Read:
-        - [set_tmp_zp, inc_read_tmp]
-        - [save_rd_val_inc_tmp, read_tmp]
-        - [set_tmp_full_inc_by_y_skip_if_no_carry, read_tmp]
-        - [inc_tmp_hi, read_tmp]
-        - [invoke_op_rd_val, read_pc]
+        - [ set_tmp_zp, inc_read_tmp ]
+        - [ save_rd_val_inc_tmp, read_tmp ]
+        - [ set_tmp_full_inc_by_y_skip_if_no_carry, read_tmp ]
+        - [ inc_tmp_hi, read_tmp ]
+        - [ invoke_op_rd_val, read_pc ]
       Write:
-        - [set_tmp_zp, inc_read_tmp]
-        - [save_rd_val_inc_tmp, read_tmp]
-        - [set_tmp_full_inc_by_y_record_carry, read_tmp]
-        - [carry_into_tmp_hi_invoke_op_dat, write_tmp]
-        - [nop, read_pc]
+        - [ set_tmp_zp, inc_read_tmp ]
+        - [ save_rd_val_inc_tmp, read_tmp ]
+        - [ set_tmp_full_inc_by_y_record_carry, read_tmp ]
+        - [ carry_into_tmp_hi_invoke_op_dat, write_tmp ]
+        - [ nop, read_pc ]
   REL:
     inst_arg: label
     sequences:
       Branch:
-        - [save_rd_val_stop_if_no_branch, inc_read_pc]
-        - [advance_pc_by_dat_stop_if_no_carry, read_pc]
-        - [carry_into_pc_hi, read_pc]
+        - [ save_rd_val_stop_if_no_branch, inc_read_pc ]
+        - [ advance_pc_by_dat_stop_if_no_carry, read_pc ]
+        - [ carry_into_pc_hi, read_pc ]
   ZP:
     inst_arg: $zp
     sequences:
       RMW:
-        - [set_tmp_zp, inc_read_tmp]
-        - [save_rd_val, write_tmp]
-        - [invoke_op_dat, write_tmp]
-        - [nop, read_pc]
+        - [ set_tmp_zp, inc_read_tmp ]
+        - [ save_rd_val, write_tmp ]
+        - [ invoke_op_dat, write_tmp ]
+        - [ nop, read_pc ]
       Read:
-        - [set_tmp_zp, inc_read_tmp]
-        - [invoke_op_rd_val, read_pc]
+        - [ set_tmp_zp, inc_read_tmp ]
+        - [ invoke_op_rd_val, read_pc ]
       Write:
-        - [set_tmp_zp_invoke_op_dat, inc_write_tmp]
-        - [nop, read_pc]
+        - [ set_tmp_zp_invoke_op_dat, inc_write_tmp ]
+        - [ nop, read_pc ]
   ZPX:
     inst_arg: $zp,X
     sequences:
       RMW:
-        - [set_tmp_zp, inc_read_tmp]
-        - [inc_tmp_by_x, read_tmp]
-        - [save_rd_val, write_tmp]
-        - [invoke_op_dat, write_tmp]
-        - [nop, read_pc]
+        - [ set_tmp_zp, inc_read_tmp ]
+        - [ inc_tmp_by_x, read_tmp ]
+        - [ save_rd_val, write_tmp ]
+        - [ invoke_op_dat, write_tmp ]
+        - [ nop, read_pc ]
       Read:
-        - [set_tmp_zp, inc_read_tmp]
-        - [inc_tmp_by_x, read_tmp]
-        - [invoke_op_rd_val, read_pc]
+        - [ set_tmp_zp, inc_read_tmp ]
+        - [ inc_tmp_by_x, read_tmp ]
+        - [ invoke_op_rd_val, read_pc ]
       Write:
-        - [set_tmp_zp, inc_read_tmp]
-        - [inc_tmp_by_x_invoke_op_dat, write_tmp]
-        - [nop, read_pc]
+        - [ set_tmp_zp, inc_read_tmp ]
+        - [ inc_tmp_by_x_invoke_op_dat, write_tmp ]
+        - [ nop, read_pc ]
   ZPY:
     inst_arg: $zp,Y
     sequences:
       Read:
-        - [set_tmp_zp, inc_read_tmp]
-        - [inc_tmp_by_y, read_tmp]
-        - [invoke_op_rd_val, read_pc]
+        - [ set_tmp_zp, inc_read_tmp ]
+        - [ inc_tmp_by_y, read_tmp ]
+        - [ invoke_op_rd_val, read_pc ]
       Write:
-        - [set_tmp_zp, inc_read_tmp]
-        - [inc_tmp_by_y_invoke_op_dat, write_tmp]
-        - [nop, read_pc]
+        - [ set_tmp_zp, inc_read_tmp ]
+        - [ inc_tmp_by_y_invoke_op_dat, write_tmp ]
+        - [ nop, read_pc ]
 
 mnemonics:
   ADC:
@@ -545,31 +545,31 @@ mnemonics:
     flags: "NZ = ALU"
 
 instructions:
-  0x00:
+  0x0:
     mnemonic: BRK
     access_mode: IMP
-  0x01:
+  0x1:
     mnemonic: ORA
     access_mode: INDX
-  0x05:
+  0x5:
     mnemonic: ORA
     access_mode: ZP
-  0x06:
+  0x6:
     mnemonic: ASL
     access_mode: ZP
-  0x08:
+  0x8:
     mnemonic: PHP
     access_mode: IMP
-  0x09:
+  0x9:
     mnemonic: ORA
     access_mode: IMM
-  0x0A:
+  0xa:
     mnemonic: ASL
     access_mode: ACC
-  0x0D:
+  0xd:
     mnemonic: ORA
     access_mode: ABS
-  0x0E:
+  0xe:
     mnemonic: ASL
     access_mode: ABS
 
@@ -591,10 +591,10 @@ instructions:
   0x19:
     mnemonic: ORA
     access_mode: ABSY
-  0x1D:
+  0x1d:
     mnemonic: ORA
     access_mode: ABSX
-  0x1E:
+  0x1e:
     mnemonic: ASL
     access_mode: ABSX
 
@@ -619,16 +619,16 @@ instructions:
   0x29:
     mnemonic: AND
     access_mode: IMM
-  0x2A:
+  0x2a:
     mnemonic: ROL
     access_mode: ACC
-  0x2C:
+  0x2c:
     mnemonic: BIT
     access_mode: ABS
-  0x2D:
+  0x2d:
     mnemonic: AND
     access_mode: ABS
-  0x2E:
+  0x2e:
     mnemonic: ROL
     access_mode: ABS
 
@@ -650,10 +650,10 @@ instructions:
   0x39:
     mnemonic: AND
     access_mode: ABSY
-  0x3D:
+  0x3d:
     mnemonic: AND
     access_mode: ABSX
-  0x3E:
+  0x3e:
     mnemonic: ROL
     access_mode: ABSX
 
@@ -675,16 +675,16 @@ instructions:
   0x49:
     mnemonic: EOR
     access_mode: IMM
-  0x4A:
+  0x4a:
     mnemonic: LSR
     access_mode: ACC
-  0x4C:
+  0x4c:
     mnemonic: JMP
     access_mode: ABS
-  0x4D:
+  0x4d:
     mnemonic: EOR
     access_mode: ABS
-  0x4E:
+  0x4e:
     mnemonic: LSR
     access_mode: ABS
 
@@ -706,10 +706,10 @@ instructions:
   0x59:
     mnemonic: EOR
     access_mode: ABSY
-  0x5D:
+  0x5d:
     mnemonic: EOR
     access_mode: ABSX
-  0x5E:
+  0x5e:
     mnemonic: LSR
     access_mode: ABSX
 
@@ -731,16 +731,16 @@ instructions:
   0x69:
     mnemonic: ADC
     access_mode: IMM
-  0x6A:
+  0x6a:
     mnemonic: ROR
     access_mode: ACC
-  0x6C:
+  0x6c:
     mnemonic: JMP
     access_mode: ABSIND
-  0x6D:
+  0x6d:
     mnemonic: ADC
     access_mode: ABS
-  0x6E:
+  0x6e:
     mnemonic: ROR
     access_mode: ABS
 
@@ -762,10 +762,10 @@ instructions:
   0x79:
     mnemonic: ADC
     access_mode: ABSY
-  0x7D:
+  0x7d:
     mnemonic: ADC
     access_mode: ABSX
-  0x7E:
+  0x7e:
     mnemonic: ROR
     access_mode: ABSX
 
@@ -784,16 +784,16 @@ instructions:
   0x88:
     mnemonic: DEY
     access_mode: IMP
-  0x8A:
+  0x8a:
     mnemonic: TXA
     access_mode: IMP
-  0x8C:
+  0x8c:
     mnemonic: STY
     access_mode: ABS
-  0x8D:
+  0x8d:
     mnemonic: STA
     access_mode: ABS
-  0x8E:
+  0x8e:
     mnemonic: STX
     access_mode: ABS
 
@@ -818,197 +818,197 @@ instructions:
   0x99:
     mnemonic: STA
     access_mode: ABSY
-  0x9A:
+  0x9a:
     mnemonic: TXS
     access_mode: IMP
-  0x9D:
+  0x9d:
     mnemonic: STA
     access_mode: ABSX
-  0xA0:
+  0xa0:
     mnemonic: LDY
     access_mode: IMM
-  0xA1:
+  0xa1:
     mnemonic: LDA
     access_mode: INDX
-  0xA2:
+  0xa2:
     mnemonic: LDX
     access_mode: IMM
-  0xA4:
+  0xa4:
     mnemonic: LDY
     access_mode: ZP
-  0xA5:
+  0xa5:
     mnemonic: LDA
     access_mode: ZP
-  0xA6:
+  0xa6:
     mnemonic: LDX
     access_mode: ZP
-  0xA8:
+  0xa8:
     mnemonic: TAY
     access_mode: IMP
-  0xA9:
+  0xa9:
     mnemonic: LDA
     access_mode: IMM
-  0xAA:
+  0xaa:
     mnemonic: TAX
     access_mode: IMP
-  0xAC:
+  0xac:
     mnemonic: LDY
     access_mode: ABS
-  0xAD:
+  0xad:
     mnemonic: LDA
     access_mode: ABS
-  0xAE:
+  0xae:
     mnemonic: LDX
     access_mode: ABS
 
-  0xB0:
+  0xb0:
     mnemonic: BCS
     access_mode: REL
-  0xB1:
+  0xb1:
     mnemonic: LDA
     access_mode: INDY
-  0xB4:
+  0xb4:
     mnemonic: LDY
     access_mode: ZPX
-  0xB5:
+  0xb5:
     mnemonic: LDA
     access_mode: ZPX
-  0xB6:
+  0xb6:
     mnemonic: LDX
     access_mode: ZPY
-  0xB8:
+  0xb8:
     mnemonic: CLV
     access_mode: IMP
-  0xB9:
+  0xb9:
     mnemonic: LDA
     access_mode: ABSY
-  0xBA:
+  0xba:
     mnemonic: TSX
     access_mode: IMP
-  0xBC:
+  0xbc:
     mnemonic: LDY
     access_mode: ABSX
-  0xBD:
+  0xbd:
     mnemonic: LDA
     access_mode: ABSX
-  0xBE:
+  0xbe:
     mnemonic: LDX
     access_mode: ABSY
 
-  0xC0:
+  0xc0:
     mnemonic: CPY
     access_mode: IMM
-  0xC1:
+  0xc1:
     mnemonic: CMP
     access_mode: INDX
-  0xC4:
+  0xc4:
     mnemonic: CPY
     access_mode: ZP
-  0xC5:
+  0xc5:
     mnemonic: CMP
     access_mode: ZP
-  0xC6:
+  0xc6:
     mnemonic: DEC
     access_mode: ZP
-  0xC8:
+  0xc8:
     mnemonic: INY
     access_mode: IMP
-  0xC9:
+  0xc9:
     mnemonic: CMP
     access_mode: IMM
-  0xCA:
+  0xca:
     mnemonic: DEX
     access_mode: IMP
-  0xCC:
+  0xcc:
     mnemonic: CPY
     access_mode: ABS
-  0xCD:
+  0xcd:
     mnemonic: CMP
     access_mode: ABS
-  0xCE:
+  0xce:
     mnemonic: DEC
     access_mode: ABS
 
-  0xD0:
+  0xd0:
     mnemonic: BNE
     access_mode: REL
-  0xD1:
+  0xd1:
     mnemonic: CMP
     access_mode: INDY
-  0xD5:
+  0xd5:
     mnemonic: CMP
     access_mode: ZPX
-  0xD6:
+  0xd6:
     mnemonic: DEC
     access_mode: ZPX
-  0xD8:
+  0xd8:
     mnemonic: CLD
     access_mode: IMP
-  0xD9:
+  0xd9:
     mnemonic: CMP
     access_mode: ABSY
-  0xDD:
+  0xdd:
     mnemonic: CMP
     access_mode: ABSX
-  0xDE:
+  0xde:
     mnemonic: DEC
     access_mode: ABSX
 
-  0xE0:
+  0xe0:
     mnemonic: CPX
     access_mode: IMM
-  0xE1:
+  0xe1:
     mnemonic: SBC
     access_mode: INDX
-  0xE4:
+  0xe4:
     mnemonic: CPX
     access_mode: ZP
-  0xE5:
+  0xe5:
     mnemonic: SBC
     access_mode: ZP
-  0xE6:
+  0xe6:
     mnemonic: INC
     access_mode: ZP
-  0xE8:
+  0xe8:
     mnemonic: INX
     access_mode: IMP
-  0xE9:
+  0xe9:
     mnemonic: SBC
     access_mode: IMM
-  0xEA:
+  0xea:
     mnemonic: NOP
     access_mode: IMP
-  0xEC:
+  0xec:
     mnemonic: CPX
     access_mode: ABS
-  0xED:
+  0xed:
     mnemonic: SBC
     access_mode: ABS
-  0xEE:
+  0xee:
     mnemonic: INC
     access_mode: ABS
 
-  0xF0:
+  0xf0:
     mnemonic: BEQ
     access_mode: REL
-  0xF1:
+  0xf1:
     mnemonic: SBC
     access_mode: INDY
-  0xF5:
+  0xf5:
     mnemonic: SBC
     access_mode: ZPX
-  0xF6:
+  0xf6:
     mnemonic: INC
     access_mode: ZPX
-  0xF8:
+  0xf8:
     mnemonic: SED
     access_mode: IMP
-  0xF9:
+  0xf9:
     mnemonic: SBC
     access_mode: ABSY
-  0xFD:
+  0xfd:
     mnemonic: SBC
     access_mode: ABSX
-  0xFE:
+  0xfe:
     mnemonic: INC
     access_mode: ABSX

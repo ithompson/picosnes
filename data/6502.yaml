@@ -117,6 +117,11 @@ access_modes:
         - [ set_tmp_lo, inc_read_pc ]
         - [ set_tmp_hi_invoke_op_dat, inc_write_tmp ]
         - [ nop, read_pc ]
+      Nomem:
+        # Illegal instructions only
+        - [ set_tmp_lo, inc_read_pc ]
+        - [ set_tmp_hi, inc_read_tmp ]
+        - [ invoke_op, read_pc ]
   ABSIND:
     inst_arg: ($addr)
     sequences:
@@ -145,9 +150,22 @@ access_modes:
         - [ set_tmp_hi_inc_by_x_record_carry, inc_read_pc ]
         - [ carry_into_tmp_hi_invoke_op_dat, write_tmp ]
         - [ nop, read_pc ]
+      Nomem:
+        # Illegal instructions only
+        - [ set_tmp_lo, inc_read_pc ]
+        - [ set_tmp_hi_inc_by_x_skip_if_no_carry, inc_read_tmp ]
+        - [ inc_tmp_hi, read_tmp ]
+        - [ invoke_op, read_pc ]
   ABSY:
     inst_arg: $addr,Y
     sequences:
+      RMW:
+        - [ set_tmp_lo, inc_read_pc ]
+        - [ set_tmp_hi_inc_by_y_record_carry, inc_read_tmp ]
+        - [ carry_into_tmp_hi, read_tmp ]
+        - [ save_rd_val, write_tmp ]
+        - [ invoke_op_dat, write_tmp ]
+        - [ nop, read_pc ]
       Read:
         - [ set_tmp_lo, inc_read_pc ]
         - [ set_tmp_hi_inc_by_y_skip_if_no_carry, inc_read_tmp ]
@@ -168,6 +186,9 @@ access_modes:
     sequences:
       Read:
         - [ invoke_op_rd_val, inc_read_pc ]
+      Nomem:
+        # Illegal instructions only
+        - [ invoke_op, inc_read_pc ]
   IMP:
     inst_arg: ""
     sequences:
@@ -202,14 +223,14 @@ access_modes:
   INDX:
     inst_arg: ($zp,X)
     sequences:
-      # RMW:
-      #   - [set_tmp_zp, inc_read_tmp]
-      #   - [inc_tmp_by_x, read_tmp]
-      #   - [save_rd_val_inc_tmp, read_tmp]
-      #   - [set_tmp_full, read_tmp]
-      #   - [save_rd_val, write_tmp]
-      #   - [invoke_op_dat, write_tmp]
-      #   - [nop, read_pc]
+      RMW:
+        - [ set_tmp_zp, inc_read_tmp ]
+        - [ inc_tmp_by_x, read_tmp ]
+        - [ save_rd_val_inc_tmp, read_tmp ]
+        - [ set_tmp_full, read_tmp ]
+        - [ save_rd_val, write_tmp ]
+        - [ invoke_op_dat, write_tmp ]
+        - [ nop, read_pc ]
       Read:
         - [ set_tmp_zp, inc_read_tmp ]
         - [ inc_tmp_by_x, read_tmp ]
@@ -225,14 +246,14 @@ access_modes:
   INDY:
     inst_arg: ($zp),Y
     sequences:
-      # RMW:
-      #   - [set_tmp_zp, inc_read_tmp]
-      #   - [save_rd_val_inc_tmp, read_tmp]
-      #   - [set_tmp_full_inc_by_y_record_carry, read_tmp]
-      #   - [carry_into_tmp_hi, read_tmp]
-      #   - [save_rd_val, write_tmp]
-      #   - [invoke_op_dat, write_tmp]
-      #   - [nop, read_pc]
+      RMW:
+        - [ set_tmp_zp, inc_read_tmp ]
+        - [ save_rd_val_inc_tmp, read_tmp ]
+        - [ set_tmp_full_inc_by_y_record_carry, read_tmp ]
+        - [ carry_into_tmp_hi, read_tmp ]
+        - [ save_rd_val, write_tmp ]
+        - [ invoke_op_dat, write_tmp ]
+        - [ nop, read_pc ]
       Read:
         - [ set_tmp_zp, inc_read_tmp ]
         - [ save_rd_val_inc_tmp, read_tmp ]
@@ -266,6 +287,10 @@ access_modes:
       Write:
         - [ set_tmp_zp_invoke_op_dat, inc_write_tmp ]
         - [ nop, read_pc ]
+      Nomem:
+        # Illegal instructions only
+        - [ set_tmp_zp, inc_read_tmp ]
+        - [ invoke_op, read_pc ]
   ZPX:
     inst_arg: $zp,X
     sequences:
@@ -283,6 +308,11 @@ access_modes:
         - [ set_tmp_zp, inc_read_tmp ]
         - [ inc_tmp_by_x_invoke_op_dat, write_tmp ]
         - [ nop, read_pc ]
+      Nomem:
+        # Illegal instructions only
+        - [ set_tmp_zp, inc_read_tmp ]
+        - [ inc_tmp_by_x, read_tmp ]
+        - [ invoke_op, read_pc ]
   ZPY:
     inst_arg: $zp,Y
     sequences:
@@ -543,6 +573,113 @@ mnemonics:
     access_subtype: Nomem
     op: "A = Y"
     flags: "NZ = ALU"
+  # Illegal mnemonics follow
+  ALR:
+    description: "AND with immediate and LSR"
+    access_subtype: Read
+    op: "A &= {reg}; A >>= 1"
+    flags: "NZC = ALU"
+    illegal: true
+  ANE:
+    description: "OR ??? and AND imm; UNSTABLE"
+    access_subtype: Read
+    op: "A = X & {reg}"
+    flags: "NZ = ALU"
+    illegal: true
+  ARR:
+    description: "Combined AND and ROR"
+    access_subtype: Read
+    op: "A &= {reg}; A ROR= 1"
+    flags: "NZCV = ALU"
+    illegal: true
+  ANC:
+    description: "AND operator, set C as if ASL"
+    access_subtype: Read
+    op: "A &= {reg}"
+    flags: "NZ = ALU; C = A7"
+    illegal: true
+  DCP:
+    description: "Combined DEC and CMP"
+    access_subtype: RMW
+    op: "{reg} -= 1; A - {reg}"
+    flags: "NZC = ALU"
+  ISC:
+    description: "Combined INC and SBC"
+    access_subtype: RMW
+    op: "{reg} += 1; A += ~{reg} + C"
+    flags: "NZCV = ALU"
+  LAS:
+    description: "Combined LDA and TSX"
+    access_subtype: Read
+    op: "A, X, S = {reg} & S"
+    flags: "NZ = ALU"
+    illegal: true
+  LAX:
+    description: "Load A and X"
+    access_subtype: Read
+    op: "A = {reg}, X = A"
+    flags: "NZ = ALU"
+    illegal: true
+  LXA:
+    description: "Set A and X to immediate ANDed with A; UNSTABLE"
+    access_subtype: Read
+    op: "A = {reg} & A, X = A"
+    flags: "NZ = ALU"
+    illegal: true
+  RLA:
+    description: "Combined ROL and AND"
+    access_subtype: RMW
+    op: "{reg} ROL= 1; A = A & {reg}"
+    flags: "NZC = ALU"
+    illegal: true
+  RRA:
+    description: "Combined ROR and ADC"
+    access_subtype: RMW
+    op: "{reg} ROR= 1; A += {reg} + C"
+    flags: "NZC = ALU"
+    illegal: true
+  SAX:
+    description: "Store A & X"
+    access_subtype: Write
+    op: "{reg} = A & X"
+    illegal: true
+  SBX:
+    description: "Combined CMP and DEX"
+    access_subtype: Read
+    op: "X = (A & X) - {reg}"
+    flags: "NZC = ALU"
+  SHA:
+    description: "Store A & X & (ADDR_HI+1); UNSTABLE"
+    access_subtype: Write
+    op: "{reg} = A & X & (ADDR_HI+1)"
+    illegal: true
+  SHY:
+    description: "Store Y & (ADDR_HI+1); UNSTABLE"
+    access_subtype: Write
+    op: "{reg} = Y & (ADDR_HI+1)"
+    illegal: true
+  SHX:
+    description: "Store X & (ADDR_HI+1); UNSTABLE"
+    access_subtype: Write
+    op: "{reg} = X & (ADDR_HI+1)"
+    illegal: true
+  SLO:
+    description: "Combined ASL and ORA"
+    access_subtype: RMW
+    op: "{reg} <<= 1; A = A | {reg}"
+    flags: "NZC = ALU"
+    illegal: true
+  SRE:
+    description: "Combined LSR and EOR"
+    access_subtype: RMW
+    op: "{reg} >>= 1; A = A ^ {reg}"
+    flags: "NZC = ALU"
+    illegal: true
+  TAS:
+    description: "Store A & X in SP, A & X & (ADDR_HI+1) in memory; UNSTABLE"
+    access_subtype: Write
+    op: "S = A & X; {reg} = A & X & (ADDR_HI+1)"
+    illegal: true
 
 instructions:
   0x0:
@@ -551,12 +688,25 @@ instructions:
   0x1:
     mnemonic: ORA
     access_mode: INDX
+  # 0x2: JAM
+  0x3:
+    mnemonic: SLO
+    access_mode: INDX
+    illegal: true
+  0x4:
+    mnemonic: NOP
+    access_mode: ZP
+    illegal: true
   0x5:
     mnemonic: ORA
     access_mode: ZP
   0x6:
     mnemonic: ASL
     access_mode: ZP
+  0x7:
+    mnemonic: SLO
+    access_mode: ZP
+    illegal: true
   0x8:
     mnemonic: PHP
     access_mode: IMP
@@ -566,12 +716,24 @@ instructions:
   0xa:
     mnemonic: ASL
     access_mode: ACC
+  0xb:
+    mnemonic: ANC
+    access_mode: IMM
+    illegal: true
+  0xc:
+    mnemonic: NOP
+    access_mode: ABS
+    illegal: true
   0xd:
     mnemonic: ORA
     access_mode: ABS
   0xe:
     mnemonic: ASL
     access_mode: ABS
+  0xf:
+    mnemonic: SLO
+    access_mode: ABS
+    illegal: true
 
   0x10:
     mnemonic: BPL
@@ -579,24 +741,53 @@ instructions:
   0x11:
     mnemonic: ORA
     access_mode: INDY
+  # 0x12: JAM
+  0x13:
+    mnemonic: SLO
+    access_mode: INDY
+    illegal: true
+  0x14:
+    mnemonic: NOP
+    access_mode: ZPX
+    illegal: true
   0x15:
     mnemonic: ORA
     access_mode: ZPX
   0x16:
     mnemonic: ASL
     access_mode: ZPX
+  0x17:
+    mnemonic: SLO
+    access_mode: ZPX
+    illegal: true
   0x18:
     mnemonic: CLC
     access_mode: IMP
   0x19:
     mnemonic: ORA
     access_mode: ABSY
+  0x1a:
+    mnemonic: NOP
+    access_mode: IMP
+    illegal: true
+  0x1b:
+    mnemonic: SLO
+    access_mode: ABSY
+    illegal: true
+  0x1c:
+    mnemonic: NOP
+    access_mode: ABSX
+    illegal: true
   0x1d:
     mnemonic: ORA
     access_mode: ABSX
   0x1e:
     mnemonic: ASL
     access_mode: ABSX
+  0x1f:
+    mnemonic: SLO
+    access_mode: ABSX
+    illegal: true
 
   0x20:
     mnemonic: JSR
@@ -604,6 +795,11 @@ instructions:
   0x21:
     mnemonic: AND
     access_mode: INDX
+  # 0x22: JAM
+  0x23:
+    mnemonic: RLA
+    access_mode: INDX
+    illegal: true
   0x24:
     mnemonic: BIT
     access_mode: ZP
@@ -613,6 +809,10 @@ instructions:
   0x26:
     mnemonic: ROL
     access_mode: ZP
+  0x27:
+    mnemonic: RLA
+    access_mode: ZP
+    illegal: true
   0x28:
     mnemonic: PLP
     access_mode: IMP
@@ -622,6 +822,10 @@ instructions:
   0x2a:
     mnemonic: ROL
     access_mode: ACC
+  0x2b:
+    mnemonic: ANC
+    access_mode: IMM
+    illegal: true
   0x2c:
     mnemonic: BIT
     access_mode: ABS
@@ -631,6 +835,10 @@ instructions:
   0x2e:
     mnemonic: ROL
     access_mode: ABS
+  0x2f:
+    mnemonic: RLA
+    access_mode: ABS
+    illegal: true
 
   0x30:
     mnemonic: BMI
@@ -638,24 +846,53 @@ instructions:
   0x31:
     mnemonic: AND
     access_mode: INDY
+  # 0x32: JAM
+  0x33:
+    mnemonic: RLA
+    access_mode: INDY
+    illegal: true
+  0x34:
+    mnemonic: NOP
+    access_mode: ZPX
+    illegal: true
   0x35:
     mnemonic: AND
     access_mode: ZPX
   0x36:
     mnemonic: ROL
     access_mode: ZPX
+  0x37:
+    mnemonic: RLA
+    access_mode: ZPX
+    illegal: true
   0x38:
     mnemonic: SEC
     access_mode: IMP
   0x39:
     mnemonic: AND
     access_mode: ABSY
+  0x3a:
+    mnemonic: NOP
+    access_mode: IMP
+    illegal: true
+  0x3b:
+    mnemonic: RLA
+    access_mode: ABSY
+    illegal: true
+  0x3c:
+    mnemonic: NOP
+    access_mode: ABSX
+    illegal: true
   0x3d:
     mnemonic: AND
     access_mode: ABSX
   0x3e:
     mnemonic: ROL
     access_mode: ABSX
+  0x3f:
+    mnemonic: RLA
+    access_mode: ABSX
+    illegal: true
 
   0x40:
     mnemonic: RTI
@@ -663,12 +900,25 @@ instructions:
   0x41:
     mnemonic: EOR
     access_mode: INDX
+  # 0x42: JAM
+  0x43:
+    mnemonic: RLA
+    access_mode: INDY
+    illegal: true
+  0x44:
+    mnemonic: NOP
+    access_mode: ZPX
+    illegal: true
   0x45:
     mnemonic: EOR
     access_mode: ZP
   0x46:
     mnemonic: LSR
     access_mode: ZP
+  0x47:
+    mnemonic: SRE
+    access_mode: ZP
+    illegal: true
   0x48:
     mnemonic: PHA
     access_mode: IMP
@@ -678,6 +928,10 @@ instructions:
   0x4a:
     mnemonic: LSR
     access_mode: ACC
+  0x4b:
+    mnemonic: ALR
+    access_mode: IMM
+    illegal: true
   0x4c:
     mnemonic: JMP
     access_mode: ABS
@@ -687,6 +941,10 @@ instructions:
   0x4e:
     mnemonic: LSR
     access_mode: ABS
+  0x4f:
+    mnemonic: SRE
+    access_mode: ABS
+    illegal: true
 
   0x50:
     mnemonic: BVC
@@ -694,24 +952,53 @@ instructions:
   0x51:
     mnemonic: EOR
     access_mode: INDY
+  # 0x52: JAM
+  0x53:
+    mnemonic: SRE
+    access_mode: INDY
+    illegal: true
+  0x54:
+    mnemonic: NOP
+    access_mode: ZPX
+    illegal: true
   0x55:
     mnemonic: EOR
     access_mode: ZPX
   0x56:
     mnemonic: LSR
     access_mode: ZPX
+  0x57:
+    mnemonic: SRE
+    access_mode: ZPX
+    illegal: true
   0x58:
     mnemonic: CLI
     access_mode: IMP
   0x59:
     mnemonic: EOR
     access_mode: ABSY
+  0x5a:
+    mnemonic: NOP
+    access_mode: IMP
+    illegal: true
+  0x5b:
+    mnemonic: SRE
+    access_mode: ABSY
+    illegal: true
+  0x5c:
+    mnemonic: NOP
+    access_mode: ABSX
+    illegal: true
   0x5d:
     mnemonic: EOR
     access_mode: ABSX
   0x5e:
     mnemonic: LSR
     access_mode: ABSX
+  0x5f:
+    mnemonic: SRE
+    access_mode: ABSX
+    illegal: true
 
   0x60:
     mnemonic: RTS
@@ -719,12 +1006,25 @@ instructions:
   0x61:
     mnemonic: ADC
     access_mode: INDX
+  # 0x62: JAM
+  0x63:
+    mnemonic: RRA
+    access_mode: INDX
+    illegal: true
+  0x64:
+    mnemonic: NOP
+    access_mode: ZP
+    illegal: true
   0x65:
     mnemonic: ADC
     access_mode: ZP
   0x66:
     mnemonic: ROR
     access_mode: ZP
+  0x67:
+    mnemonic: RRA
+    access_mode: ZP
+    illegal: true
   0x68:
     mnemonic: PLA
     access_mode: IMP
@@ -734,6 +1034,10 @@ instructions:
   0x6a:
     mnemonic: ROR
     access_mode: ACC
+  0x6b:
+    mnemonic: ARR
+    access_mode: IMM
+    illegal: true
   0x6c:
     mnemonic: JMP
     access_mode: ABSIND
@@ -743,6 +1047,10 @@ instructions:
   0x6e:
     mnemonic: ROR
     access_mode: ABS
+  0x6f:
+    mnemonic: RRA
+    access_mode: ABS
+    illegal: true
 
   0x70:
     mnemonic: BVS
@@ -750,28 +1058,69 @@ instructions:
   0x71:
     mnemonic: ADC
     access_mode: INDY
+  # 0x72: JAM
+  0x73:
+    mnemonic: RRA
+    access_mode: INDY
+    illegal: true
+  0x74:
+    mnemonic: NOP
+    access_mode: ZPX
+    illegal: true
   0x75:
     mnemonic: ADC
     access_mode: ZPX
   0x76:
     mnemonic: ROR
     access_mode: ZPX
+  0x77:
+    mnemonic: RRA
+    access_mode: ZPX
+    illegal: true
   0x78:
     mnemonic: SEI
     access_mode: IMP
   0x79:
     mnemonic: ADC
     access_mode: ABSY
+  0x7a:
+    mnemonic: NOP
+    access_mode: IMP
+    illegal: true
+  0x7b:
+    mnemonic: RRA
+    access_mode: ABSY
+    illegal: true
+  0x7c:
+    mnemonic: NOP
+    access_mode: ABSX
+    illegal: true
   0x7d:
     mnemonic: ADC
     access_mode: ABSX
   0x7e:
     mnemonic: ROR
     access_mode: ABSX
+  0x7f:
+    mnemonic: RRA
+    access_mode: ABSX
+    illegal: true
 
+  0x80:
+    mnemonic: NOP
+    access_mode: IMM
+    illegal: true
   0x81:
     mnemonic: STA
     access_mode: INDX
+  0x82:
+    mnemonic: NOP
+    access_mode: IMM
+    illegal: true
+  0x83:
+    mnemonic: SAX
+    access_mode: INDX
+    illegal: true
   0x84:
     mnemonic: STY
     access_mode: ZP
@@ -781,12 +1130,24 @@ instructions:
   0x86:
     mnemonic: STX
     access_mode: ZP
+  0x87:
+    mnemonic: SAX
+    access_mode: ZP
+    illegal: true
   0x88:
     mnemonic: DEY
     access_mode: IMP
+  0x89:
+    mnemonic: NOP
+    access_mode: IMM
+    illegal: true
   0x8a:
     mnemonic: TXA
     access_mode: IMP
+  0x8b:
+    mnemonic: ANE
+    access_mode: IMM
+    illegal: true
   0x8c:
     mnemonic: STY
     access_mode: ABS
@@ -796,6 +1157,10 @@ instructions:
   0x8e:
     mnemonic: STX
     access_mode: ABS
+  0x8f:
+    mnemonic: SAX
+    access_mode: ABS
+    illegal: true
 
   0x90:
     mnemonic: BCC
@@ -803,6 +1168,11 @@ instructions:
   0x91:
     mnemonic: STA
     access_mode: INDY
+  # 0x92: JAM
+  0x93:
+    mnemonic: SHA
+    access_mode: INDY
+    illegal: true
   0x94:
     mnemonic: STY
     access_mode: ZPX
@@ -812,6 +1182,10 @@ instructions:
   0x96:
     mnemonic: STX
     access_mode: ZPY
+  0x97:
+    mnemonic: SAX
+    access_mode: ZPY
+    illegal: true
   0x98:
     mnemonic: TYA
     access_mode: IMP
@@ -821,9 +1195,26 @@ instructions:
   0x9a:
     mnemonic: TXS
     access_mode: IMP
+  0x9b:
+    mnemonic: TAS
+    access_mode: ABSY
+    illegal: true
+  0x9c:
+    mnemonic: SHY
+    access_mode: ABSX
+    illegal: true
   0x9d:
     mnemonic: STA
     access_mode: ABSX
+  0x9e:
+    mnemonic: SHX
+    access_mode: ABSY
+    illegal: true
+  0x9f:
+    mnemonic: SHA
+    access_mode: ABSY
+    illegal: true
+
   0xa0:
     mnemonic: LDY
     access_mode: IMM
@@ -833,6 +1224,10 @@ instructions:
   0xa2:
     mnemonic: LDX
     access_mode: IMM
+  0xa3:
+    mnemonic: LAX
+    access_mode: INDX
+    illegal: true
   0xa4:
     mnemonic: LDY
     access_mode: ZP
@@ -842,6 +1237,10 @@ instructions:
   0xa6:
     mnemonic: LDX
     access_mode: ZP
+  0xa7:
+    mnemonic: LAX
+    access_mode: ZP
+    illegal: true
   0xa8:
     mnemonic: TAY
     access_mode: IMP
@@ -851,6 +1250,10 @@ instructions:
   0xaa:
     mnemonic: TAX
     access_mode: IMP
+  0xab:
+    mnemonic: LXA
+    access_mode: IMM
+    illegal: true
   0xac:
     mnemonic: LDY
     access_mode: ABS
@@ -860,6 +1263,10 @@ instructions:
   0xae:
     mnemonic: LDX
     access_mode: ABS
+  0xaf:
+    mnemonic: LAX
+    access_mode: ABS
+    illegal: true
 
   0xb0:
     mnemonic: BCS
@@ -867,6 +1274,11 @@ instructions:
   0xb1:
     mnemonic: LDA
     access_mode: INDY
+  # 0xb2: JAM
+  0xb3:
+    mnemonic: LAX
+    access_mode: INDY
+    illegal: true
   0xb4:
     mnemonic: LDY
     access_mode: ZPX
@@ -876,6 +1288,10 @@ instructions:
   0xb6:
     mnemonic: LDX
     access_mode: ZPY
+  0xb7:
+    mnemonic: LAX
+    access_mode: ZPY
+    illegal: true
   0xb8:
     mnemonic: CLV
     access_mode: IMP
@@ -885,6 +1301,10 @@ instructions:
   0xba:
     mnemonic: TSX
     access_mode: IMP
+  0xbb:
+    mnemonic: LAS
+    access_mode: ABSY
+    illegal: true
   0xbc:
     mnemonic: LDY
     access_mode: ABSX
@@ -894,6 +1314,10 @@ instructions:
   0xbe:
     mnemonic: LDX
     access_mode: ABSY
+  0xbf:
+    mnemonic: LAX
+    access_mode: ABSY
+    illegal: true
 
   0xc0:
     mnemonic: CPY
@@ -901,6 +1325,14 @@ instructions:
   0xc1:
     mnemonic: CMP
     access_mode: INDX
+  0xc2:
+    mnemonic: NOP
+    access_mode: IMM
+    illegal: true
+  0xc3:
+    mnemonic: DCP
+    access_mode: INDX
+    illegal: true
   0xc4:
     mnemonic: CPY
     access_mode: ZP
@@ -910,6 +1342,10 @@ instructions:
   0xc6:
     mnemonic: DEC
     access_mode: ZP
+  0xc7:
+    mnemonic: DCP
+    access_mode: ZP
+    illegal: true
   0xc8:
     mnemonic: INY
     access_mode: IMP
@@ -919,6 +1355,10 @@ instructions:
   0xca:
     mnemonic: DEX
     access_mode: IMP
+  0xcb:
+    mnemonic: SBX
+    access_mode: IMM
+    illegal: true
   0xcc:
     mnemonic: CPY
     access_mode: ABS
@@ -928,6 +1368,10 @@ instructions:
   0xce:
     mnemonic: DEC
     access_mode: ABS
+  0xcf:
+    mnemonic: DCP
+    access_mode: ABS
+    illegal: true
 
   0xd0:
     mnemonic: BNE
@@ -935,24 +1379,53 @@ instructions:
   0xd1:
     mnemonic: CMP
     access_mode: INDY
+  # 0xd2: JAM
+  0xd3:
+    mnemonic: DCP
+    access_mode: INDY
+    illegal: true
+  0xd4:
+    mnemonic: NOP
+    access_mode: ZPX
+    illegal: true
   0xd5:
     mnemonic: CMP
     access_mode: ZPX
   0xd6:
     mnemonic: DEC
     access_mode: ZPX
+  0xd7:
+    mnemonic: DCP
+    access_mode: ZPX
+    illegal: true
   0xd8:
     mnemonic: CLD
     access_mode: IMP
   0xd9:
     mnemonic: CMP
     access_mode: ABSY
+  0xda:
+    mnemonic: NOP
+    access_mode: IMP
+    illegal: true
+  0xdb:
+    mnemonic: DCP
+    access_mode: ABSY
+    illegal: true
+  0xdc:
+    mnemonic: NOP
+    access_mode: ABSX
+    illegal: true
   0xdd:
     mnemonic: CMP
     access_mode: ABSX
   0xde:
     mnemonic: DEC
     access_mode: ABSX
+  0xdf:
+    mnemonic: DCP
+    access_mode: ABSX
+    illegal: true
 
   0xe0:
     mnemonic: CPX
@@ -960,6 +1433,14 @@ instructions:
   0xe1:
     mnemonic: SBC
     access_mode: INDX
+  0xe2:
+    mnemonic: NOP
+    access_mode: IMM
+    illegal: true
+  0xe3:
+    mnemonic: ISC
+    access_mode: INDX
+    illegal: true
   0xe4:
     mnemonic: CPX
     access_mode: ZP
@@ -969,6 +1450,10 @@ instructions:
   0xe6:
     mnemonic: INC
     access_mode: ZP
+  0xe7:
+    mnemonic: ISC
+    access_mode: ZP
+    illegal: true
   0xe8:
     mnemonic: INX
     access_mode: IMP
@@ -978,6 +1463,10 @@ instructions:
   0xea:
     mnemonic: NOP
     access_mode: IMP
+  0xeb:
+    mnemonic: SBC
+    access_mode: IMM
+    illegal: true
   0xec:
     mnemonic: CPX
     access_mode: ABS
@@ -987,6 +1476,10 @@ instructions:
   0xee:
     mnemonic: INC
     access_mode: ABS
+  0xef:
+    mnemonic: ISC
+    access_mode: ABS
+    illegal: true
 
   0xf0:
     mnemonic: BEQ
@@ -994,21 +1487,50 @@ instructions:
   0xf1:
     mnemonic: SBC
     access_mode: INDY
+  # 0xf2: JAM
+  0xf3:
+    mnemonic: ISC
+    access_mode: INDY
+    illegal: true
+  0xf4:
+    mnemonic: NOP
+    access_mode: ZPX
+    illegal: true
   0xf5:
     mnemonic: SBC
     access_mode: ZPX
   0xf6:
     mnemonic: INC
     access_mode: ZPX
+  0xf7:
+    mnemonic: ISC
+    access_mode: ZPX
+    illegal: true
   0xf8:
     mnemonic: SED
     access_mode: IMP
   0xf9:
     mnemonic: SBC
     access_mode: ABSY
+  0xfa:
+    mnemonic: NOP
+    access_mode: IMP
+    illegal: true
+  0xfb:
+    mnemonic: ISC
+    access_mode: ABSY
+    illegal: true
+  0xfc:
+    mnemonic: NOP
+    access_mode: ABSX
+    illegal: true
   0xfd:
     mnemonic: SBC
     access_mode: ABSX
   0xfe:
     mnemonic: INC
     access_mode: ABSX
+  0xff:
+    mnemonic: ISC
+    access_mode: ABSX
+    illegal: true

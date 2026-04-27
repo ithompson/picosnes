@@ -287,25 +287,36 @@ pub fn bvs(regs: &mut ArchRegs, val: &mut u8) {
 }
 
 // Illegal opcodes
-pub fn alr(_regs: &mut ArchRegs, _val: &mut u8) {
+pub fn alr(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: A &= {reg}; A >>= 1
     // @flags: NZC = ALU
-    todo!("Mnemonic ALR");
+    let tmp = *regs.a & *val;
+    let carry = tmp & 0x01 != 0;
+    regs.a.set(tmp >> 1);
+    regs.p.update(|p| p.with_nzc_from_value(*regs.a, carry));
 }
 pub fn ane(_regs: &mut ArchRegs, _val: &mut u8) {
     // @pseudocode: A = X & {reg}
     // @flags: NZ = ALU
     todo!("Mnemonic ANE");
 }
-pub fn arr(_regs: &mut ArchRegs, _val: &mut u8) {
+pub fn arr(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: A &= {reg}; A ROR= 1
     // @flags: NZCV = ALU
-    todo!("Mnemonic ARR");
+    let tmp = *regs.a & *val;
+    let carry = tmp & 0x80 != 0;
+    let overflow = (tmp ^ (tmp << 1)) & 0x80 != 0;
+    regs.a
+        .set((if regs.p.c { 0x80 } else { 0x00 }) | (tmp >> 1));
+    regs.p
+        .update(|p| p.with_nzcv_from_value(*regs.a, carry, overflow));
 }
-pub fn anc(_regs: &mut ArchRegs, _val: &mut u8) {
+pub fn anc(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: A &= {reg}
     // @flags: NZ = ALU; C = A7
-    todo!("Mnemonic ANC");
+    regs.a.update(|a| a & *val);
+    regs.p
+        .update(|p| p.with_nzc_from_value(*regs.a, (*regs.a & 0x80) != 0))
 }
 pub fn dcp(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: {reg} -= 1; A - {reg}
@@ -332,11 +343,6 @@ pub fn lax(regs: &mut ArchRegs, val: &mut u8) {
     regs.x.set(*val);
     regs.p.update(|p| p.with_nz_from_value(*val));
 }
-pub fn lxa(_regs: &mut ArchRegs, _val: &mut u8) {
-    // @pseudocode: A = {reg} & A, X = A
-    // @flags: NZ = ALU
-    todo!("Mnemonic LXA");
-}
 pub fn rla(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: {reg} ROL= 1; A = A & {reg}
     // @flags: NZC = ALU
@@ -358,10 +364,13 @@ pub fn sax(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: {reg} = A & X
     *val = *regs.a & *regs.x;
 }
-pub fn sbx(_regs: &mut ArchRegs, _val: &mut u8) {
+pub fn sbx(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: X = (A & X) - {reg}
     // @flags: NZC = ALU
-    todo!("Mnemonic SBX");
+    let tmp = *regs.a & *regs.x;
+    let (result, carry) = tmp.overflowing_sub(*val);
+    regs.x.set(result);
+    regs.p.update(|p| p.with_nzc_from_value(*regs.x, !carry));
 }
 pub fn sha(_regs: &mut ArchRegs, _val: &mut u8) {
     // @pseudocode: {reg} = A & X & (ADDR_HI+1)
@@ -387,11 +396,10 @@ pub fn slo(regs: &mut ArchRegs, val: &mut u8) {
 pub fn sre(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: {reg} >>= 1; A = A ^ {reg}
     // @flags: NZC = ALU
-    let carry = *val & 1;
+    let carry = *val & 1 != 0;
     *val >>= 1;
     regs.a.update(|a| a ^ *val);
-    regs.p
-        .update(|p| p.with_nzc_from_value(*regs.a, carry != 0));
+    regs.p.update(|p| p.with_nzc_from_value(*regs.a, carry));
 }
 pub fn tas(_regs: &mut ArchRegs, _val: &mut u8) {
     // @pseudocode: S = A & X; {reg} = A & X & (ADDR_HI+1)
@@ -590,6 +598,34 @@ mod tests {
     define_op_test!(test_nop() { op: nop });
 
     // Illegal ops
+    define_op_test!(test_alr(regs, val) {
+        op: alr,
+        logic: {
+            let intermediate = *regs.a & val;
+        },
+        update_regs: {
+            a: intermediate >> 1,
+            p: regs.p.with_nzc_from_value(intermediate >> 1, intermediate & 0x01 != 0)
+        }
+    });
+    define_op_test!(test_anc(regs, val) {
+        op: anc,
+        update_regs: {
+            a: *regs.a & val,
+            p: regs.p.with_nzc_from_value(*regs.a & val, (*regs.a & val) & 0x80 != 0)
+        }
+    });
+    define_op_test!(test_arr(regs, val) {
+        op: arr,
+        logic: {
+            let anded = *regs.a & val;
+            let rotated = if regs.p.c { 0x80 } else { 0x00 } | (anded >> 1);
+        },
+        update_regs: {
+            a: rotated,
+            p: regs.p.with_nzcv_from_value(rotated, anded & 0x80 != 0, (anded ^ (anded << 1)) & 0x80 != 0)
+        }
+    });
     define_op_test!(test_dcp(regs, val) {
         op: dcp,
         logic: {
@@ -654,6 +690,16 @@ mod tests {
             let result = *regs.a & *regs.x;
         },
         expected_val: result
+    });
+    define_op_test!(test_sbx(regs, val) {
+        op: sbx,
+        logic: {
+            let anded = *regs.a & *regs.x;
+        },
+        update_regs: {
+            x: anded.wrapping_sub(val),
+            p: regs.p.with_nzc(anded.wrapping_sub(val) & 0x80 != 0, anded == val, anded >= val)
+        }
     });
     define_op_test!(test_slo(regs, val) {
         op: slo,

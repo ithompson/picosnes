@@ -620,12 +620,6 @@ mnemonics:
     op: "A = {reg}, X = A"
     flags: "NZ = ALU"
     illegal: true
-  LXA:
-    description: "Set A and X to immediate ANDed with A; UNSTABLE"
-    access_subtype: Read
-    op: "A = {reg} & A, X = A"
-    flags: "NZ = ALU"
-    illegal: true
   RLA:
     description: "Combined ROL and AND"
     access_subtype: RMW
@@ -902,8 +896,8 @@ instructions:
     access_mode: INDX
   # 0x42: JAM
   0x43:
-    mnemonic: RLA
-    access_mode: INDY
+    mnemonic: SRE
+    access_mode: INDX
     illegal: true
   0x44:
     mnemonic: NOP
@@ -1251,7 +1245,7 @@ instructions:
     mnemonic: TAX
     access_mode: IMP
   0xab:
-    mnemonic: LXA
+    mnemonic: LAX
     access_mode: IMM
     illegal: true
   0xac:

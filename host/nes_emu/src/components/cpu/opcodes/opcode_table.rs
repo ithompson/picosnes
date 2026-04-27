@@ -65,7 +65,7 @@ pub static OPCODE_TABLE: [Option<Opcode>; 256] = {
     opcode!(ops, 0x3F, "RLA $addr,X", ABSX_RMW_SEQUENCE, rla);
     opcode!(ops, 0x40, "RTI", IMP_RTI_SEQUENCE, nop);
     opcode!(ops, 0x41, "EOR ($zp,X)", INDX_READ_SEQUENCE, eor);
-    opcode!(ops, 0x43, "RLA ($zp),Y", INDY_RMW_SEQUENCE, rla);
+    opcode!(ops, 0x43, "SRE ($zp,X)", INDX_RMW_SEQUENCE, sre);
     opcode!(ops, 0x44, "NOP $zp,X", ZPX_NOMEM_SEQUENCE, nop);
     opcode!(ops, 0x45, "EOR $zp", ZP_READ_SEQUENCE, eor);
     opcode!(ops, 0x46, "LSR $zp", ZP_RMW_SEQUENCE, lsr);
@@ -165,7 +165,7 @@ pub static OPCODE_TABLE: [Option<Opcode>; 256] = {
     opcode!(ops, 0xA8, "TAY", IMP_NOMEM_SEQUENCE, tay);
     opcode!(ops, 0xA9, "LDA #imm", IMM_READ_SEQUENCE, lda);
     opcode!(ops, 0xAA, "TAX", IMP_NOMEM_SEQUENCE, tax);
-    opcode!(ops, 0xAB, "LXA #imm", IMM_READ_SEQUENCE, lxa);
+    opcode!(ops, 0xAB, "LAX #imm", IMM_READ_SEQUENCE, lax);
     opcode!(ops, 0xAC, "LDY $addr", ABS_READ_SEQUENCE, ldy);
     opcode!(ops, 0xAD, "LDA $addr", ABS_READ_SEQUENCE, lda);
     opcode!(ops, 0xAE, "LDX $addr", ABS_READ_SEQUENCE, ldx);

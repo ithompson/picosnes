@@ -8,7 +8,7 @@ use thiserror::Error;
 
 pub use bus::{BusDevice, ReadResult};
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq, Eq)]
 pub enum EmuError {
     #[error("Normal emulation stop")]
     StopEmulation,

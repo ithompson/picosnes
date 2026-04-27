@@ -286,6 +286,98 @@ pub fn bvs(regs: &mut ArchRegs, val: &mut u8) {
     *val = regs.p.v as u8;
 }
 
+// Illegal opcodes
+pub fn alr(_regs: &mut ArchRegs, _val: &mut u8) {
+    // @pseudocode: A &= {reg}; A >>= 1
+    // @flags: NZC = ALU
+    todo!("Mnemonic ALR");
+}
+pub fn ane(_regs: &mut ArchRegs, _val: &mut u8) {
+    // @pseudocode: A = X & {reg}
+    // @flags: NZ = ALU
+    todo!("Mnemonic ANE");
+}
+pub fn arr(_regs: &mut ArchRegs, _val: &mut u8) {
+    // @pseudocode: A &= {reg}; A ROR= 1
+    // @flags: NZCV = ALU
+    todo!("Mnemonic ARR");
+}
+pub fn anc(_regs: &mut ArchRegs, _val: &mut u8) {
+    // @pseudocode: A &= {reg}
+    // @flags: NZ = ALU; C = A7
+    todo!("Mnemonic ANC");
+}
+pub fn dcp(_regs: &mut ArchRegs, _val: &mut u8) {
+    // @pseudocode: {reg} -= 1; A - {reg}
+    // @flags: NZC = ALU
+    todo!("Mnemonic DCP");
+}
+pub fn isc(_regs: &mut ArchRegs, _val: &mut u8) {
+    // @pseudocode: {reg} += 1; A += ~{reg} + C
+    // @flags: NZCV = ALU
+    todo!("Mnemonic ISC");
+}
+pub fn las(_regs: &mut ArchRegs, _val: &mut u8) {
+    // @pseudocode: A, X, S = {reg} & S
+    // @flags: NZ = ALU
+    todo!("Mnemonic LAS");
+}
+pub fn lax(_regs: &mut ArchRegs, _val: &mut u8) {
+    // @pseudocode: A = {reg}, X = A
+    // @flags: NZ = ALU
+    todo!("Mnemonic LAX");
+}
+pub fn lxa(_regs: &mut ArchRegs, _val: &mut u8) {
+    // @pseudocode: A = {reg} & A, X = A
+    // @flags: NZ = ALU
+    todo!("Mnemonic LXA");
+}
+pub fn rla(_regs: &mut ArchRegs, _val: &mut u8) {
+    // @pseudocode: {reg} ROL= 1; A = A & {reg}
+    // @flags: NZC = ALU
+    todo!("Mnemonic RLA");
+}
+pub fn rra(_regs: &mut ArchRegs, _val: &mut u8) {
+    // @pseudocode: {reg} ROR= 1; A += {reg} + C
+    // @flags: NZC = ALU
+    todo!("Mnemonic RRA");
+}
+pub fn sax(_regs: &mut ArchRegs, _val: &mut u8) {
+    // @pseudocode: {reg} = A & X
+    todo!("Mnemonic SAX");
+}
+pub fn sbx(_regs: &mut ArchRegs, _val: &mut u8) {
+    // @pseudocode: X = (A & X) - {reg}
+    // @flags: NZC = ALU
+    todo!("Mnemonic SBX");
+}
+pub fn sha(_regs: &mut ArchRegs, _val: &mut u8) {
+    // @pseudocode: {reg} = A & X & (ADDR_HI+1)
+    todo!("Mnemonic SHA");
+}
+pub fn shy(_regs: &mut ArchRegs, _val: &mut u8) {
+    // @pseudocode: {reg} = Y & (ADDR_HI+1)
+    todo!("Mnemonic SHY");
+}
+pub fn shx(_regs: &mut ArchRegs, _val: &mut u8) {
+    // @pseudocode: {reg} = X & (ADDR_HI+1)
+    todo!("Mnemonic SHX");
+}
+pub fn slo(_regs: &mut ArchRegs, _val: &mut u8) {
+    // @pseudocode: {reg} <<= 1; A = A | {reg}
+    // @flags: NZC = ALU
+    todo!("Mnemonic SLO");
+}
+pub fn sre(_regs: &mut ArchRegs, _val: &mut u8) {
+    // @pseudocode: {reg} >>= 1; A = A ^ {reg}
+    // @flags: NZC = ALU
+    todo!("Mnemonic SRE");
+}
+pub fn tas(_regs: &mut ArchRegs, _val: &mut u8) {
+    // @pseudocode: S = A & X; {reg} = A & X & (ADDR_HI+1)
+    todo!("Mnemonic TAS");
+}
+
 #[cfg(test)]
 mod tests {
     // The handling of "logic" definitions in op tests generates

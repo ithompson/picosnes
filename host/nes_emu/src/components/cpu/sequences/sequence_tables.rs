@@ -55,6 +55,11 @@ seq!(ABS_WRITE_SEQUENCE => [
     (SET_TMP_HI_INVOKE_OP_DAT, IncWriteTmp),
     (NOP, ReadPC),
 ]);
+seq!(ABS_NOMEM_SEQUENCE => [
+    (SET_TMP_LO, IncReadPC),
+    (SET_TMP_HI, IncReadTmp),
+    (INVOKE_OP, ReadPC),
+]);
 seq!(ABSIND_JMP_SEQUENCE => [
     (SET_TMP_LO, IncReadPC),
     (SET_TMP_HI, IncReadTmp),
@@ -81,6 +86,20 @@ seq!(ABSX_WRITE_SEQUENCE => [
     (CARRY_INTO_TMP_HI_INVOKE_OP_DAT, WriteTmp),
     (NOP, ReadPC),
 ]);
+seq!(ABSX_NOMEM_SEQUENCE => [
+    (SET_TMP_LO, IncReadPC),
+    (SET_TMP_HI_INC_BY_X_SKIP_IF_NO_CARRY, IncReadTmp),
+    (INC_TMP_HI, ReadTmp),
+    (INVOKE_OP, ReadPC),
+]);
+seq!(ABSY_RMW_SEQUENCE => [
+    (SET_TMP_LO, IncReadPC),
+    (SET_TMP_HI_INC_BY_Y_RECORD_CARRY, IncReadTmp),
+    (CARRY_INTO_TMP_HI, ReadTmp),
+    (SAVE_RD_VAL, WriteTmp),
+    (INVOKE_OP_DAT, WriteTmp),
+    (NOP, ReadPC),
+]);
 seq!(ABSY_READ_SEQUENCE => [
     (SET_TMP_LO, IncReadPC),
     (SET_TMP_HI_INC_BY_Y_SKIP_IF_NO_CARRY, IncReadTmp),
@@ -98,6 +117,9 @@ seq!(ACC_RMW_SEQUENCE => [
 ]);
 seq!(IMM_READ_SEQUENCE => [
     (INVOKE_OP_RD_VAL, IncReadPC),
+]);
+seq!(IMM_NOMEM_SEQUENCE => [
+    (INVOKE_OP, IncReadPC),
 ]);
 seq!(IMP_BRK_SEQUENCE => [
     (SAVE_PC_HI, IncPushStk),
@@ -133,6 +155,15 @@ seq!(IMP_RTS_SEQUENCE => [
     (SET_PC_HI, ReadPC),
     (NOP, IncReadPC),
 ]);
+seq!(INDX_RMW_SEQUENCE => [
+    (SET_TMP_ZP, IncReadTmp),
+    (INC_TMP_BY_X, ReadTmp),
+    (SAVE_RD_VAL_INC_TMP, ReadTmp),
+    (SET_TMP_FULL, ReadTmp),
+    (SAVE_RD_VAL, WriteTmp),
+    (INVOKE_OP_DAT, WriteTmp),
+    (NOP, ReadPC),
+]);
 seq!(INDX_READ_SEQUENCE => [
     (SET_TMP_ZP, IncReadTmp),
     (INC_TMP_BY_X, ReadTmp),
@@ -145,6 +176,15 @@ seq!(INDX_WRITE_SEQUENCE => [
     (INC_TMP_BY_X, ReadTmp),
     (SAVE_RD_VAL_INC_TMP, ReadTmp),
     (SET_TMP_FULL_INVOKE_OP_DAT, WriteTmp),
+    (NOP, ReadPC),
+]);
+seq!(INDY_RMW_SEQUENCE => [
+    (SET_TMP_ZP, IncReadTmp),
+    (SAVE_RD_VAL_INC_TMP, ReadTmp),
+    (SET_TMP_FULL_INC_BY_Y_RECORD_CARRY, ReadTmp),
+    (CARRY_INTO_TMP_HI, ReadTmp),
+    (SAVE_RD_VAL, WriteTmp),
+    (INVOKE_OP_DAT, WriteTmp),
     (NOP, ReadPC),
 ]);
 seq!(INDY_READ_SEQUENCE => [
@@ -180,6 +220,10 @@ seq!(ZP_WRITE_SEQUENCE => [
     (SET_TMP_ZP_INVOKE_OP_DAT, IncWriteTmp),
     (NOP, ReadPC),
 ]);
+seq!(ZP_NOMEM_SEQUENCE => [
+    (SET_TMP_ZP, IncReadTmp),
+    (INVOKE_OP, ReadPC),
+]);
 seq!(ZPX_RMW_SEQUENCE => [
     (SET_TMP_ZP, IncReadTmp),
     (INC_TMP_BY_X, ReadTmp),
@@ -196,6 +240,11 @@ seq!(ZPX_WRITE_SEQUENCE => [
     (SET_TMP_ZP, IncReadTmp),
     (INC_TMP_BY_X_INVOKE_OP_DAT, WriteTmp),
     (NOP, ReadPC),
+]);
+seq!(ZPX_NOMEM_SEQUENCE => [
+    (SET_TMP_ZP, IncReadTmp),
+    (INC_TMP_BY_X, ReadTmp),
+    (INVOKE_OP, ReadPC),
 ]);
 seq!(ZPY_READ_SEQUENCE => [
     (SET_TMP_ZP, IncReadTmp),

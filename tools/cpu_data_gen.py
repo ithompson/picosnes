@@ -307,7 +307,7 @@ def main() -> None:
     args = parser.parse_args()
 
     cpu_data: CpuData = parse_yaml_file_as(CpuData, args.data_file)
-    cpu_data.validate()
+    cpu_data.validate_consistency()
 
     match args.command:
         case "rust_codegen":

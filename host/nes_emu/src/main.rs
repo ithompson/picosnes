@@ -1,12 +1,8 @@
-mod components;
-mod nes;
-mod nes_file;
-
 use std::{fs::File, path::PathBuf};
 
 use clap::Parser;
 
-use crate::{
+use nes_emu::{
     components::{EmuError, tracer::Tracer},
     nes::NESSystem,
     nes_file::NesFile,

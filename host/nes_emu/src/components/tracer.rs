@@ -77,9 +77,9 @@ struct TraceData {
 ///
 /// Basic example usage:
 /// ```
-/// let tracer = Tracer::new(&["cpu.regs"]);
+/// let tracer = nes_emu::components::tracer::Tracer::new(&["cpu.regs"], None);
 ///
-/// let parent_element_id = tracer.register_element("cpu", None)
+/// let parent_element_id = tracer.register_element("cpu", None);
 /// let child_element_id = tracer.register_element("regs", Some(parent_element_id));
 ///
 /// tracer.trace_event(child_element_id, format_args!("{}", 42))

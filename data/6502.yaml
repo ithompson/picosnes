@@ -636,7 +636,7 @@ mnemonics:
     description: "Combined ROR and ADC"
     access_subtype: RMW
     op: "{reg} ROR= 1; A += {reg} + C"
-    flags: "NZC = ALU"
+    flags: "NZCV = ALU"
     illegal: true
   SAX:
     description: "Store A & X"

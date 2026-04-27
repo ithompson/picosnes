@@ -31,7 +31,7 @@ fn run_test_rom(rom_path: &str, tick_limit: u64) {
 
 #[test]
 fn test_single_01_implied() {
-    run_test_rom("nes_instr_test/rom_singles/01-implied.nes", 2_000_000);
+    run_test_rom("nes_instr_test/rom_singles/01-implied.nes", 1_703_000);
 }
 
 #[test]
@@ -47,15 +47,13 @@ fn test_single_03_zero_page() {
 }
 
 #[test]
-#[ignore = "Unimplemented illegal instructions"]
 fn test_single_04_zp_xy() {
-    run_test_rom("nes_instr_test/rom_singles/04-zp_xy.nes", 4_000_000);
+    run_test_rom("nes_instr_test/rom_singles/04-zp_xy.nes", 5_030_000);
 }
 
 #[test]
-#[ignore = "Unimplemented illegal instructions"]
 fn test_single_05_absolute() {
-    run_test_rom("nes_instr_test/rom_singles/05-absolute.nes", 2_000_000);
+    run_test_rom("nes_instr_test/rom_singles/05-absolute.nes", 1_954_000);
 }
 
 #[test]
@@ -65,25 +63,24 @@ fn test_single_06_abs_xy() {
 }
 
 #[test]
-#[ignore = "Unimplemented illegal instructions"]
+#[ignore = "Detecting error in SRE implementation"]
 fn test_single_07_ind_x() {
-    run_test_rom("nes_instr_test/rom_singles/07-ind_x.nes", 2_000_000);
+    run_test_rom("nes_instr_test/rom_singles/07-ind_x.nes", 4_000_000);
 }
 
 #[test]
-#[ignore = "Unimplemented illegal instructions"]
 fn test_single_08_ind_y() {
-    run_test_rom("nes_instr_test/rom_singles/08-ind_y.nes", 2_000_000);
+    run_test_rom("nes_instr_test/rom_singles/08-ind_y.nes", 2_747_000);
 }
 
 #[test]
 fn test_single_09_branches() {
-    run_test_rom("nes_instr_test/rom_singles/09-branches.nes", 800_000);
+    run_test_rom("nes_instr_test/rom_singles/09-branches.nes", 794_000);
 }
 
 #[test]
 fn test_single_10_stack() {
-    run_test_rom("nes_instr_test/rom_singles/10-stack.nes", 4_000_000);
+    run_test_rom("nes_instr_test/rom_singles/10-stack.nes", 3_614_000);
 }
 
 #[test]

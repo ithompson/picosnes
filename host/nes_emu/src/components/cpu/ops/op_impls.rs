@@ -307,44 +307,56 @@ pub fn anc(_regs: &mut ArchRegs, _val: &mut u8) {
     // @flags: NZ = ALU; C = A7
     todo!("Mnemonic ANC");
 }
-pub fn dcp(_regs: &mut ArchRegs, _val: &mut u8) {
+pub fn dcp(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: {reg} -= 1; A - {reg}
     // @flags: NZC = ALU
-    todo!("Mnemonic DCP");
+    *val = val.wrapping_sub(1);
+    let (result, carry) = regs.a.overflowing_sub(*val);
+    regs.p.update(|p| p.with_nzc_from_value(result, !carry));
 }
-pub fn isc(_regs: &mut ArchRegs, _val: &mut u8) {
+pub fn isc(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: {reg} += 1; A += ~{reg} + C
     // @flags: NZCV = ALU
-    todo!("Mnemonic ISC");
+    *val = val.wrapping_add(1);
+    alu_addsub(regs, !*val);
 }
 pub fn las(_regs: &mut ArchRegs, _val: &mut u8) {
     // @pseudocode: A, X, S = {reg} & S
     // @flags: NZ = ALU
     todo!("Mnemonic LAS");
 }
-pub fn lax(_regs: &mut ArchRegs, _val: &mut u8) {
+pub fn lax(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: A = {reg}, X = A
     // @flags: NZ = ALU
-    todo!("Mnemonic LAX");
+    regs.a.set(*val);
+    regs.x.set(*val);
+    regs.p.update(|p| p.with_nz_from_value(*val));
 }
 pub fn lxa(_regs: &mut ArchRegs, _val: &mut u8) {
     // @pseudocode: A = {reg} & A, X = A
     // @flags: NZ = ALU
     todo!("Mnemonic LXA");
 }
-pub fn rla(_regs: &mut ArchRegs, _val: &mut u8) {
+pub fn rla(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: {reg} ROL= 1; A = A & {reg}
     // @flags: NZC = ALU
-    todo!("Mnemonic RLA");
+    let carry = *val & 0x80;
+    *val = (*val << 1) | (regs.p.c as u8);
+    regs.a.update(|a| a & *val);
+    regs.p
+        .update(|p| p.with_nzc_from_value(*regs.a, carry != 0));
 }
-pub fn rra(_regs: &mut ArchRegs, _val: &mut u8) {
+pub fn rra(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: {reg} ROR= 1; A += {reg} + C
-    // @flags: NZC = ALU
-    todo!("Mnemonic RRA");
+    // @flags: NZCV = ALU
+    let carry = *val & 1;
+    *val = (if regs.p.c { 0x80 } else { 0x00 }) | (*val >> 1);
+    regs.p.update(|p| p.with_c(carry != 0));
+    alu_addsub(regs, *val);
 }
-pub fn sax(_regs: &mut ArchRegs, _val: &mut u8) {
+pub fn sax(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: {reg} = A & X
-    todo!("Mnemonic SAX");
+    *val = *regs.a & *regs.x;
 }
 pub fn sbx(_regs: &mut ArchRegs, _val: &mut u8) {
     // @pseudocode: X = (A & X) - {reg}
@@ -363,15 +375,23 @@ pub fn shx(_regs: &mut ArchRegs, _val: &mut u8) {
     // @pseudocode: {reg} = X & (ADDR_HI+1)
     todo!("Mnemonic SHX");
 }
-pub fn slo(_regs: &mut ArchRegs, _val: &mut u8) {
+pub fn slo(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: {reg} <<= 1; A = A | {reg}
     // @flags: NZC = ALU
-    todo!("Mnemonic SLO");
+    let carry = *val & 0x80;
+    *val <<= 1;
+    regs.a.update(|a| a | *val);
+    regs.p
+        .update(|p| p.with_nzc_from_value(*regs.a, carry != 0));
 }
-pub fn sre(_regs: &mut ArchRegs, _val: &mut u8) {
+pub fn sre(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: {reg} >>= 1; A = A ^ {reg}
     // @flags: NZC = ALU
-    todo!("Mnemonic SRE");
+    let carry = *val & 1;
+    *val >>= 1;
+    regs.a.update(|a| a ^ *val);
+    regs.p
+        .update(|p| p.with_nzc_from_value(*regs.a, carry != 0));
 }
 pub fn tas(_regs: &mut ArchRegs, _val: &mut u8) {
     // @pseudocode: S = A & X; {reg} = A & X & (ADDR_HI+1)
@@ -568,4 +588,95 @@ mod tests {
 
     // Other ops
     define_op_test!(test_nop() { op: nop });
+
+    // Illegal ops
+    define_op_test!(test_dcp(regs, val) {
+        op: dcp,
+        logic: {
+            let result = val.wrapping_sub(1);
+        },
+        update_regs: {
+            p: regs.p.with_nzc(regs.a.wrapping_sub(result) & 0x80 != 0, *regs.a == result, *regs.a >= result)
+        },
+        expected_val: result
+    });
+    define_op_test!(test_isc(regs, val, 10000) {
+        op: isc,
+        logic: {
+            let inc_val = val.wrapping_add(1);
+            let wide_result = (*regs.a as u16).wrapping_sub(inc_val as u16)
+                .wrapping_sub(!regs.p.c as u16);
+            let result = wide_result as u8;
+        },
+        update_regs: {
+            a: result,
+            p: regs.p.with_nzcv_from_value(result, wide_result <= 0xFF, (((result ^ *regs.a) & (result ^ !inc_val)) & 0x80) != 0)
+        },
+        expected_val: inc_val
+    });
+    define_op_test!(test_lax(regs, val) {
+        op: lax,
+        update_regs: {
+            a: val,
+            x: val,
+            p: regs.p.with_nz_from_value(val)
+        }
+    });
+    define_op_test!(test_rla(regs, val) {
+        op: rla,
+        logic: {
+            let mem_result = (if regs.p.c {0x01} else {0x00}) | (val << 1);
+            let a_result = *regs.a & mem_result;
+        },
+        update_regs: {
+            a: a_result,
+            p: regs.p.with_nzc_from_value(a_result, val & 0x80 != 0)
+        },
+        expected_val: mem_result
+    });
+    define_op_test!(test_rra(regs, val, 10000) {
+        op: rra,
+        logic: {
+            let rotated_val = (if regs.p.c {0x80} else {0x00}) | (val >> 1);
+            let wide_result = (*regs.a as u16).wrapping_add(rotated_val as u16)
+                .wrapping_add((val & 0x01) as u16);
+            let result = wide_result as u8;
+        },
+        update_regs: {
+            a: result,
+            p: regs.p.with_nzcv_from_value(result, wide_result > 0xFF, (((result ^ *regs.a) & (result ^ rotated_val)) & 0x80) != 0)
+        },
+        expected_val: rotated_val
+    });
+    define_op_test!(test_sax(regs, val) {
+        op: sax,
+        logic: {
+            let result = *regs.a & *regs.x;
+        },
+        expected_val: result
+    });
+    define_op_test!(test_slo(regs, val) {
+        op: slo,
+        logic: {
+            let mem_val = val << 1;
+            let new_a_val = *regs.a | mem_val;
+        },
+        update_regs: {
+            a: new_a_val,
+            p: regs.p.with_nzc_from_value(new_a_val, val & 0x80 != 0)
+        },
+        expected_val: mem_val
+    });
+    define_op_test!(test_sre(regs, val) {
+        op: sre,
+        logic: {
+            let mem_result = val >> 1;
+            let a_result = *regs.a ^ mem_result;
+        },
+        update_regs: {
+            a: a_result,
+            p: regs.p.with_nzc_from_value(a_result, val & 1 != 0)
+        },
+        expected_val: mem_result
+    });
 }

@@ -122,7 +122,7 @@ impl Tracer {
             elements[parent.0].all_children_enabled = true;
         }
 
-        let trace_writer = trace_file.map(|file| BufWriter::new(file));
+        let trace_writer = trace_file.map(BufWriter::new);
 
         Tracer {
             data: RefCell::new(TraceData {

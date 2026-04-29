@@ -141,7 +141,7 @@ impl TraceableValue for ArchPSR {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct ArchRegs<'t> {
     pub a: TraceableReg<'t, u8>,
     pub x: TraceableReg<'t, u8>,
@@ -160,19 +160,6 @@ impl<'t> ArchRegs<'t> {
             p: TraceableReg::new_default("P", tracer, trace_parent),
             s: TraceableReg::new_default("S", tracer, trace_parent),
             pc: TraceableReg::new_default("PC", tracer, trace_parent),
-        }
-    }
-}
-
-impl Default for ArchRegs<'_> {
-    fn default() -> Self {
-        Self {
-            a: Default::default(),
-            x: Default::default(),
-            y: Default::default(),
-            p: Default::default(),
-            s: Default::default(),
-            pc: Default::default(),
         }
     }
 }

@@ -70,6 +70,12 @@ impl GenericRouter {
     }
 }
 
+impl Default for GenericRouter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BusDevice for GenericRouter {
     fn bus_read(&mut self, addr: u32) -> EmuResult<ReadResult> {
         if let Some((range, device)) = self.find_device(addr) {

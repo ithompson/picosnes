@@ -106,10 +106,10 @@ impl<'t> NESSystem<'t> {
 
     pub fn run(&mut self, tick_limit: Option<u64>) -> EmuResult<()> {
         loop {
-            if let Some(limit) = tick_limit {
-                if self.tick_count >= limit {
-                    return Err(EmuError::CycleLimitReached);
-                }
+            if let Some(limit) = tick_limit
+                && self.tick_count >= limit
+            {
+                return Err(EmuError::CycleLimitReached);
             }
             self.run_tick()?;
         }

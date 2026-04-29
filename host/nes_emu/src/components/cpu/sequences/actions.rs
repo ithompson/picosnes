@@ -210,6 +210,24 @@ action_defs! {
         cpu.internal.dat = val;
         Ok(())
     },
+    CARRY_INTO_TMP_HI_GLITCH_WITH_X => |cpu| {
+        // @pseudocode: local_tmp = dat; dat = X & (tmp.hi + 1); if local_tmp tmp.hi = dat
+        let new_dat = *cpu.regs.x & (cpu.internal.tmp_hi + 1);
+        if cpu.internal.dat > 0 {
+            cpu.internal.tmp_hi = new_dat;
+        }
+        cpu.internal.dat = new_dat;
+        Ok(())
+    },
+    CARRY_INTO_TMP_HI_GLITCH_WITH_Y => |cpu| {
+        // @pseudocode: local_tmp = dat; dat = Y & (tmp.hi + 1); if local_tmp tmp.hi = dat
+        let new_dat = *cpu.regs.y & (cpu.internal.tmp_hi + 1);
+        if cpu.internal.dat > 0 {
+            cpu.internal.tmp_hi = new_dat;
+        }
+        cpu.internal.dat = new_dat;
+        Ok(())
+    },
     INC_TMP_BY_X => |cpu| {
         // @pseudocode: tmp.lo += X
         cpu.internal.tmp_lo = cpu.internal.tmp_lo.wrapping_add(*cpu.regs.x);

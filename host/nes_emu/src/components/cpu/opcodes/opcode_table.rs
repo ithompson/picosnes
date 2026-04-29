@@ -150,9 +150,9 @@ pub static OPCODE_TABLE: [Option<Opcode>; 256] = {
     opcode!(ops, 0x99, "STA $addr,Y", ABSY_WRITE_SEQUENCE, sta);
     opcode!(ops, 0x9A, "TXS", IMP_NOMEM_SEQUENCE, txs);
     opcode!(ops, 0x9B, "TAS $addr,Y", ABSY_WRITE_SEQUENCE, tas);
-    opcode!(ops, 0x9C, "SHY $addr,X", ABSX_WRITE_SEQUENCE, shy);
+    opcode!(ops, 0x9C, "SHY $addr,X", ABSX_WRITEGLITCHY_SEQUENCE, nop);
     opcode!(ops, 0x9D, "STA $addr,X", ABSX_WRITE_SEQUENCE, sta);
-    opcode!(ops, 0x9E, "SHX $addr,Y", ABSY_WRITE_SEQUENCE, shx);
+    opcode!(ops, 0x9E, "SHX $addr,Y", ABSY_WRITEGLITCHX_SEQUENCE, nop);
     opcode!(ops, 0x9F, "SHA $addr,Y", ABSY_WRITE_SEQUENCE, sha);
     opcode!(ops, 0xA0, "LDY #imm", IMM_READ_SEQUENCE, ldy);
     opcode!(ops, 0xA1, "LDA ($zp,X)", INDX_READ_SEQUENCE, lda);

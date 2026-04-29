@@ -92,6 +92,12 @@ seq!(ABSX_NOMEM_SEQUENCE => [
     (INC_TMP_HI, ReadTmp),
     (INVOKE_OP, ReadPC),
 ]);
+seq!(ABSX_WRITEGLITCHY_SEQUENCE => [
+    (SET_TMP_LO, IncReadPC),
+    (SET_TMP_HI_INC_BY_X_RECORD_CARRY, IncReadPC),
+    (CARRY_INTO_TMP_HI_GLITCH_WITH_Y, WriteTmp),
+    (NOP, ReadPC),
+]);
 seq!(ABSY_RMW_SEQUENCE => [
     (SET_TMP_LO, IncReadPC),
     (SET_TMP_HI_INC_BY_Y_RECORD_CARRY, IncReadTmp),
@@ -110,6 +116,12 @@ seq!(ABSY_WRITE_SEQUENCE => [
     (SET_TMP_LO, IncReadPC),
     (SET_TMP_HI_INC_BY_Y_RECORD_CARRY, IncReadPC),
     (CARRY_INTO_TMP_HI_INVOKE_OP_DAT, WriteTmp),
+    (NOP, ReadPC),
+]);
+seq!(ABSY_WRITEGLITCHX_SEQUENCE => [
+    (SET_TMP_LO, IncReadPC),
+    (SET_TMP_HI_INC_BY_Y_RECORD_CARRY, IncReadPC),
+    (CARRY_INTO_TMP_HI_GLITCH_WITH_X, WriteTmp),
     (NOP, ReadPC),
 ]);
 seq!(ACC_RMW_SEQUENCE => [

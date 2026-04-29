@@ -51,6 +51,8 @@ class MnemonicData(BaseModel):
     """Optional pseudocode for flags impacted by this mnemonic"""
     branch_cond: str | None = None
     """For branch type operations, the branch condition"""
+    op_alias: str | None = None
+    """Underlying implementation of this op, for cases where implementations overlap"""
     illegal: bool = False
     """Whether this mnemonic is only for illegal instructions"""
 
@@ -132,4 +134,14 @@ class CpuData(BaseModel):
             if not inst_data.illegal:
                 assert not mnemonic_data.illegal, (
                     f"Illegal mnemonic '{inst_data.mnemonic}' used in legal opcode 0x{opcode:02X}"
+                )
+            if mnemonic_data.op or mnemonic_data.flags or mnemonic_data.branch_cond:
+                assert not mnemonic_data.op_alias
+            if mnemonic_data.op_alias:
+                assert not (
+                    mnemonic_data.op or mnemonic_data.flags or mnemonic_data.branch_cond
+                )
+                assert (
+                    mnemonic_data.op_alias in self.mnemonics
+                    and self.mnemonics[mnemonic_data.op_alias].op is not None
                 )

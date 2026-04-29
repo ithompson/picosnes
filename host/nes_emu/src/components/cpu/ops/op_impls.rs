@@ -376,14 +376,6 @@ pub fn sha(_regs: &mut ArchRegs, _val: &mut u8) {
     // @pseudocode: {reg} = A & X & (ADDR_HI+1)
     todo!("Mnemonic SHA");
 }
-pub fn shy(_regs: &mut ArchRegs, _val: &mut u8) {
-    // @pseudocode: {reg} = Y & (ADDR_HI+1)
-    todo!("Mnemonic SHY");
-}
-pub fn shx(_regs: &mut ArchRegs, _val: &mut u8) {
-    // @pseudocode: {reg} = X & (ADDR_HI+1)
-    todo!("Mnemonic SHX");
-}
 pub fn slo(regs: &mut ArchRegs, val: &mut u8) {
     // @pseudocode: {reg} <<= 1; A = A | {reg}
     // @flags: NZC = ALU

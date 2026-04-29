@@ -42,6 +42,8 @@ actions:
   inc_tmp_hi: "tmp.hi += 1"
   carry_into_tmp_hi: "tmp.hi += dat"
   carry_into_tmp_hi_invoke_op_dat: "tmp.hi += dat, op(dat)"
+  carry_into_tmp_hi_glitch_with_x: "local_tmp = dat; dat = X & (tmp.hi + 1); if local_tmp tmp.hi = dat"
+  carry_into_tmp_hi_glitch_with_y: "local_tmp = dat; dat = Y & (tmp.hi + 1); if local_tmp tmp.hi = dat"
 
   # ZPX/ZPY access mode support
   inc_tmp_by_x: "tmp.lo += X"
@@ -156,6 +158,11 @@ access_modes:
         - [ set_tmp_hi_inc_by_x_skip_if_no_carry, inc_read_tmp ]
         - [ inc_tmp_hi, read_tmp ]
         - [ invoke_op, read_pc ]
+      WriteGlitchY:
+        - [ set_tmp_lo, inc_read_pc ]
+        - [ set_tmp_hi_inc_by_x_record_carry, inc_read_pc ]
+        - [ carry_into_tmp_hi_glitch_with_y, write_tmp ]
+        - [ nop, read_pc ]
   ABSY:
     inst_arg: $addr,Y
     sequences:
@@ -175,6 +182,11 @@ access_modes:
         - [ set_tmp_lo, inc_read_pc ]
         - [ set_tmp_hi_inc_by_y_record_carry, inc_read_pc ]
         - [ carry_into_tmp_hi_invoke_op_dat, write_tmp ]
+        - [ nop, read_pc ]
+      WriteGlitchX:
+        - [ set_tmp_lo, inc_read_pc ]
+        - [ set_tmp_hi_inc_by_y_record_carry, inc_read_pc ]
+        - [ carry_into_tmp_hi_glitch_with_x, write_tmp ]
         - [ nop, read_pc ]
   ACC:
     inst_arg: A
@@ -649,13 +661,13 @@ mnemonics:
     illegal: true
   SHY:
     description: "Store Y & (ADDR_HI+1); UNSTABLE"
-    access_subtype: Write
-    op: "{reg} = Y & (ADDR_HI+1)"
+    access_subtype: WriteGlitchY
+    op_alias: NOP
     illegal: true
   SHX:
     description: "Store X & (ADDR_HI+1); UNSTABLE"
-    access_subtype: Write
-    op: "{reg} = X & (ADDR_HI+1)"
+    access_subtype: WriteGlitchX
+    op_alias: NOP
     illegal: true
   SLO:
     description: "Combined ASL and ORA"

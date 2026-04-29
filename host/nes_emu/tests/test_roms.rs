@@ -55,9 +55,8 @@ fn test_single_05_absolute() {
 }
 
 #[test]
-#[ignore = "Unimplemented illegal instructions"]
 fn test_single_06_abs_xy() {
-    run_test_rom("nes_instr_test/rom_singles/06-abs_xy.nes", 8_000_000);
+    run_test_rom("nes_instr_test/rom_singles/06-abs_xy.nes", 7_080_000);
 }
 
 #[test]

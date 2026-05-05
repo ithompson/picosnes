@@ -83,3 +83,13 @@ fn test_single_10_stack() {
 fn test_single_11_special() {
     run_test_rom("nes_instr_test/rom_singles/11-special.nes", 1_139_000);
 }
+
+#[test]
+fn test_cpu_reset_registers() {
+    run_test_rom("cpu_reset/registers.nes", 4_044_000);
+}
+
+#[test]
+fn test_cpu_reset_ram() {
+    run_test_rom("cpu_reset/ram_after_reset.nes", 4_046_000);
+}

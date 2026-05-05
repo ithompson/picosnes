@@ -4,6 +4,8 @@ use crate::components::{
     cpu::{ArchRegs, BusAccess, Cpu6502},
     debug::TestROMMonitor,
     mem::{RAMDevice, ROMDevice},
+    reset_controller::ResetController,
+    signal::{LevelSignal, PulseSignal},
     tracer::Tracer,
 };
 use crate::nes_file::NesFile;
@@ -14,15 +16,28 @@ pub struct NESSystem<'t> {
     data_bus_state: u8,
     tracer: &'t Tracer,
     tick_count: u64,
+    reset_controller: ResetController,
 }
 
 impl<'t> NESSystem<'t> {
     pub fn new(tracer: &'t Tracer, rom: NesFile) -> Self {
+        let mut reset_signal = PulseSignal::new();
+        let mut irq_signal = LevelSignal::new();
+        let mut nmi_signal = PulseSignal::new();
+        let cpu_reset_signal = reset_signal.make_receiver();
+        let mut reset_controller = ResetController::new(reset_signal);
+        let reset_source = reset_controller.make_reset_source();
         let mut system = NESSystem {
-            cpu: Cpu6502::new(tracer),
+            cpu: Cpu6502::new(
+                tracer,
+                nmi_signal.make_receiver(),
+                irq_signal.make_receiver(),
+                cpu_reset_signal,
+            ),
             cpu_bus: GenericRouter::new(),
             data_bus_state: 0,
             tracer,
+            reset_controller,
             tick_count: 0,
         };
         // Internal RAM: 0x0000 - 0x1FFF, mirroring every 0x0800 bytes
@@ -46,7 +61,11 @@ impl<'t> NESSystem<'t> {
             .add_device(0x4000, 0x0, 0x18, Box::new(fake_apu));
 
         //let prg_ram = Box::new(RAMDevice::new(rom.prg_ram_size));
-        let prg_ram = Box::new(TestROMMonitor::new(RAMDevice::new(0x2000), 0x0));
+        let prg_ram = Box::new(TestROMMonitor::new(
+            RAMDevice::new(0x2000),
+            0x0,
+            reset_source,
+        ));
         system.cpu_bus.add_device(0x6000, 0x0, 0x2000, prg_ram);
 
         // FIXME: temporary assumptions that work for the test ROMs
@@ -69,6 +88,7 @@ impl<'t> NESSystem<'t> {
     }
 
     fn run_tick(&mut self) -> EmuResult<()> {
+        self.reset_controller.tick();
         match self.cpu.tick(self.data_bus_state)? {
             BusAccess::Read(addr) => {
                 match self.cpu_bus.bus_read(addr as u32)? {

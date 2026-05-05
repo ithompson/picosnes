@@ -2,6 +2,8 @@ pub mod bus;
 pub mod cpu;
 pub mod debug;
 pub mod mem;
+pub mod reset_controller;
+pub mod signal;
 pub mod tracer;
 
 use thiserror::Error;

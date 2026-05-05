@@ -1,4 +1,4 @@
-use super::{BusDevice, EmuError, EmuResult, ReadResult};
+use super::{BusDevice, EmuError, EmuResult, ReadResult, reset_controller::ResetSource};
 
 const STATE_FLAG_OFFSET: u32 = 0x0;
 const TEST_SIG_OFFSET: u32 = 0x1;
@@ -7,18 +7,26 @@ const MSG_OFFSET: u32 = 0x4;
 const SIGNATURE_SIZE: usize = 3;
 const TEST_SIGNATURE: [u8; SIGNATURE_SIZE] = [0xDE, 0xB0, 0x61];
 
+// CPU Clock speed: (236.25 MHz / 11) / 12
+const CPU_TICKS_PER_MS: u64 = (((236_250_000.0 / 11.0) / 12.0) / 1000.0) as u64;
+const RESET_DELAY_TICKS: u64 = 100 * CPU_TICKS_PER_MS;
+
 #[derive(Debug)]
 pub struct TestROMMonitor<T: BusDevice> {
     device: T,
     test_mem_base: u32,
+    reset_trigger: ResetSource,
+
     current_test_signature: [u8; 3],
 }
 
 impl<T: BusDevice> TestROMMonitor<T> {
-    pub fn new(device: T, test_mem_base: u32) -> Self {
+    pub fn new(device: T, test_mem_base: u32, reset_trigger: ResetSource) -> Self {
         TestROMMonitor {
             device,
             test_mem_base,
+            reset_trigger,
+
             current_test_signature: [0; SIGNATURE_SIZE],
         }
     }
@@ -55,7 +63,7 @@ impl<T: BusDevice> BusDevice for TestROMMonitor<T> {
                 }
                 0x81 => {
                     // Soft reset requested
-                    todo!("Soft reset requested");
+                    self.reset_trigger.schedule_reset(RESET_DELAY_TICKS);
                 }
                 0x00 => {
                     // Test completed successfully

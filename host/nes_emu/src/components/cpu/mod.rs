@@ -6,6 +6,8 @@ use std::fmt::{self, Display};
 
 use sequences::{CpuCycle, MemCycle};
 
+use crate::components::signal::{LevelReceiver, PulseReceiver};
+
 use super::tracer::{TraceElementId, TraceableReg, TraceableValue, Tracer};
 use super::{EmuError, EmuResult};
 use opcodes::OPCODE_TABLE;
@@ -183,8 +185,9 @@ pub struct Cpu6502<'a> {
     seq_trace_element: TraceElementId,
     instr_trace_element: TraceElementId,
 
-    nmi_pending: bool,
-    irq_signaled: bool,
+    nmi_signal: PulseReceiver,
+    irq_signal: LevelReceiver,
+    reset_signal: PulseReceiver,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -194,7 +197,12 @@ pub enum BusAccess {
 }
 
 impl<'a> Cpu6502<'a> {
-    pub fn new(tracer: &'a Tracer) -> Self {
+    pub fn new(
+        tracer: &'a Tracer,
+        nmi_signal: PulseReceiver,
+        irq_signal: LevelReceiver,
+        reset_signal: PulseReceiver,
+    ) -> Self {
         let root_trace_element = tracer.register_element("cpu", None);
         let mem_trace_element = tracer.register_element("mem", Some(root_trace_element));
         let regs_trace_element = tracer.register_element("regs", Some(root_trace_element));
@@ -211,26 +219,14 @@ impl<'a> Cpu6502<'a> {
             seq_trace_element,
             instr_trace_element,
 
-            nmi_pending: false,
-            irq_signaled: false,
+            nmi_signal,
+            irq_signal,
+            reset_signal,
         }
     }
 
     pub fn mem_trace_element(&self) -> TraceElementId {
         self.mem_trace_element
-    }
-
-    pub fn trigger_nmi(&mut self) {
-        self.nmi_pending = true;
-    }
-
-    pub fn set_irq_signaled(&mut self, active: bool) {
-        self.irq_signaled = active;
-    }
-
-    pub fn reset(&mut self) {
-        self.sequence = sequences::RESET_SEQUENCE;
-        self.nmi_pending = false;
     }
 
     pub fn get_regs(&self) -> &ArchRegs<'a> {
@@ -239,6 +235,11 @@ impl<'a> Cpu6502<'a> {
 
     pub fn tick(&mut self, data_bus: u8) -> EmuResult<BusAccess> {
         self.internal.rd_val = data_bus;
+
+        if self.reset_signal.check_and_acknowledge() {
+            self.nmi_signal.check_and_acknowledge();
+            self.sequence = sequences::RESET_SEQUENCE;
+        }
 
         if self.sequence.is_empty() {
             self.sequence = sequences::DISPATCH_SEQUENCE;
@@ -309,10 +310,9 @@ impl<'a> Cpu6502<'a> {
         // BRK sequence would have the IRQ/NMI checks on the cycle that pushes P
         // to the stack. If IRQ/NMI is detected, the action on that cycle would
         // swap to the IRQ/NMI sequence
-        if self.nmi_pending {
-            self.nmi_pending = false;
+        if self.nmi_signal.check_and_acknowledge() {
             self.sequence = sequences::NMI_SEQUENCE;
-        } else if self.irq_signaled && !self.regs.p.i {
+        } else if self.irq_signal.get() && !self.regs.p.i {
             self.sequence = sequences::IRQ_SEQUENCE;
         } else if let Some(opdesc) = &OPCODE_TABLE[opcode as usize] {
             self.tracer.trace_event(
